@@ -22,6 +22,15 @@ export async function rateLimit(opts: {
   limit: number;
   windowSeconds: number;
 }): Promise<NextResponse | null> {
+  // Local dev shares one IP bucket ("unknown"/localhost), so repeated manual
+  // testing trips limits meant for strangers on the internet. Enforce only in
+  // production, unless RATE_LIMIT_ENABLED=true forces it on for testing.
+  const enforced =
+    process.env.RATE_LIMIT_ENABLED === "true" ||
+    (process.env.NODE_ENV === "production" &&
+      process.env.RATE_LIMIT_ENABLED !== "false");
+  if (!enforced) return null;
+
   try {
     const rows = await db.$queryRaw<Array<{ count: number }>>`
       INSERT INTO "RateLimit" ("key", "count", "windowEnd")
