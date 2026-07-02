@@ -14,6 +14,20 @@
   --color-accent-400: #fbbf24;
   --color-accent-500: #f59e0b;
   --color-accent-600: #d97706;
+
+  /* Marketing palette — "café print": paper, espresso ink, burnt ember,
+     awning moss, star gold. Used only on .mkt surfaces. */
+  --color-paper: #f6f0e4;
+  --color-paper-deep: #ece2cc;
+  --color-ink: #211711;
+  --color-ink-soft: #57453a;
+  --color-ink-faint: #8a7462;
+  --color-ember: #d4551e;
+  --color-ember-deep: #b23f10;
+  --color-moss: #234b38;
+  --color-moss-dark: #173627;
+  --color-gold: #e8a83a;
+  --color-cream: #fbf7ee;
 }
 
 :root {
@@ -24,4 +38,355 @@ body {
   @apply bg-slate-50 text-slate-900 antialiased;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ===========================================================================
+   Marketing (.mkt) — the public site. Everything below is scoped so the
+   owner app and admin panel keep their system-font look untouched.
+   ======================================================================== */
+
+.mkt {
+  font-family: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  overflow-x: clip;
+}
+
+.f-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.f-mono {
+  font-family: var(--font-mono-mkt), ui-monospace, monospace;
+}
+
+.mkt ::selection {
+  background: var(--color-ember);
+  color: var(--color-cream);
+}
+
+/* Paper grain — one fixed overlay per page. */
+.mkt-grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Eyebrow ticket label */
+.mkt-eyebrow {
+  font-family: var(--font-mono-mkt), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* Dashed receipt rule */
+.mkt-rule {
+  background-image: linear-gradient(
+    to right,
+    currentColor 0 6px,
+    transparent 6px 12px
+  );
+  background-size: 12px 1px;
+  background-repeat: repeat-x;
+  height: 1px;
+  opacity: 0.35;
+}
+
+/* Receipt perforation (top & bottom scalloped edges) */
+.mkt-receipt {
+  --perf: 7px;
+  -webkit-mask:
+    radial-gradient(circle at 50% 0, transparent var(--perf), #000 calc(var(--perf) + 0.5px)) top /
+      calc(var(--perf) * 3.2) calc(var(--perf) * 2) repeat-x,
+    radial-gradient(circle at 50% 100%, transparent var(--perf), #000 calc(var(--perf) + 0.5px)) bottom /
+      calc(var(--perf) * 3.2) calc(var(--perf) * 2) repeat-x,
+    linear-gradient(#000, #000) 50% 50% / 100% calc(100% - var(--perf) * 4) no-repeat;
+  mask:
+    radial-gradient(circle at 50% 0, transparent var(--perf), #000 calc(var(--perf) + 0.5px)) top /
+      calc(var(--perf) * 3.2) calc(var(--perf) * 2) repeat-x,
+    radial-gradient(circle at 50% 100%, transparent var(--perf), #000 calc(var(--perf) + 0.5px)) bottom /
+      calc(var(--perf) * 3.2) calc(var(--perf) * 2) repeat-x,
+    linear-gradient(#000, #000) 50% 50% / 100% calc(100% - var(--perf) * 4) no-repeat;
+}
+
+/* Buttons */
+.mkt-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  isolation: isolate;
+}
+.mkt-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translateY(101%);
+  border-radius: inherit;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mkt-btn:hover::before {
+  transform: translateY(0);
+}
+.mkt-btn:hover {
+  transform: translateY(-2px);
+}
+.mkt-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+.mkt-btn-primary {
+  background: var(--color-ember);
+  color: var(--color-cream);
+  box-shadow: 0 10px 24px -12px rgb(212 85 30 / 0.65);
+}
+.mkt-btn-primary::before {
+  background: var(--color-ink);
+}
+.mkt-btn-ink {
+  background: var(--color-ink);
+  color: var(--color-cream);
+}
+.mkt-btn-ink::before {
+  background: var(--color-ember);
+}
+.mkt-btn-ghost {
+  border: 1.5px solid color-mix(in srgb, var(--color-ink) 25%, transparent);
+  color: var(--color-ink);
+  background: transparent;
+}
+.mkt-btn-ghost::before {
+  background: var(--color-ink);
+}
+.mkt-btn-ghost:hover {
+  color: var(--color-cream);
+  border-color: var(--color-ink);
+}
+.mkt-btn-cream {
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+.mkt-btn-cream::before {
+  background: var(--color-gold);
+}
+.mkt-btn-cream:hover {
+  color: var(--color-ink);
+}
+
+/* Link underline draw */
+.mkt-link {
+  position: relative;
+  text-decoration: none;
+}
+.mkt-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 1.5px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mkt-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Scroll reveal (driven by IntersectionObserver in motion.tsx) */
+.mkt [data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.mkt [data-reveal="left"] {
+  transform: translateX(-32px);
+}
+.mkt [data-reveal="right"] {
+  transform: translateX(32px);
+}
+.mkt [data-reveal="scale"] {
+  transform: scale(0.94);
+}
+.mkt [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hero word cascade (pure CSS, runs on load) */
+@keyframes mkt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(110%) rotate(2.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+}
+.mkt-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.mkt-word > span {
+  display: inline-block;
+  animation: mkt-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes mkt-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.mkt-fade-up {
+  animation: mkt-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Marquee ticker */
+@keyframes mkt-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.mkt-marquee {
+  display: flex;
+  width: max-content;
+  animation: mkt-marquee var(--marquee-speed, 42s) linear infinite;
+}
+.mkt-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Slow float for decorative chips */
+@keyframes mkt-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-10px) rotate(var(--tilt, 0deg));
+  }
+}
+.mkt-bob {
+  animation: mkt-bob var(--bob-speed, 5.5s) ease-in-out infinite;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes mkt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.mkt-spin-slow {
+  animation: mkt-spin 26s linear infinite;
+}
+
+/* Star pop inside the demo phone */
+@keyframes mkt-star-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.35) rotate(-8deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.mkt-star-pop {
+  animation: mkt-star-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Soft pulsing hint */
+@keyframes mkt-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(212 85 30 / 0.45);
+  }
+  60% {
+    box-shadow: 0 0 0 12px rgb(212 85 30 / 0);
+  }
+}
+.mkt-pulse {
+  animation: mkt-pulse 2.4s ease-out infinite;
+}
+
+/* Coffee-ring stain (two offset circles) */
+.mkt-ring {
+  border-radius: 50%;
+  border: 10px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+  -webkit-mask: radial-gradient(circle, #000 62%, transparent 63%) exclude,
+    linear-gradient(#000, #000);
+  filter: blur(0.4px);
+}
+
+/* Section anchors clear the fixed nav */
+.mkt section[id] {
+  scroll-margin-top: 96px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* FAQ details marker */
+.mkt details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.mkt details > summary::-webkit-details-marker {
+  display: none;
+}
+.mkt details .mkt-plus {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mkt details[open] .mkt-plus {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .mkt *,
+  .mkt *::before,
+  .mkt *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .mkt [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
 }

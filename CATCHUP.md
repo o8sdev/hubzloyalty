@@ -29,6 +29,31 @@ and their build triggers: `docs/04-roadmap.md`.
 
 ## Session log (newest first)
 
+### 2026-07-02 — Session 4: marketing site (landing + about), "café print" design
+- Replaced the placeholder landing with a full marketing site in a committed
+  editorial aesthetic: paper/espresso/ember/moss palette, Fraunces display
+  serif + Schibsted Grotesk body + Spline Sans Mono "receipt" voice (fonts
+  via next/font, scoped to `.mkt` so the owner app/admin keep system fonts).
+- **Landing** (`/`): staggered hero word cascade, interactive phone demo of
+  the real funnel (tap a star → both doors, compliance made tangible),
+  parallax floating chips + coffee-ring décor, review marquee, 3-step
+  how-it-works, 4-feature product tour with CSS UI vignettes, dark
+  stats section with an animated perforated **receipt** (counters), moss
+  compliance section, testimonials, pricing (plan card + receipt), FAQ
+  accordions, ember CTA, footer with ghost wordmark.
+- **About** (`/about`): manifesto hero, origin-story review card, principle
+  quote, 4 values, roadmap timeline (phases as courses; statuses match
+  docs/04-roadmap.md).
+- Motion system in `src/components/marketing/motion.tsx` (Reveal/Parallax/
+  Counter — IntersectionObserver + rAF, no library, honors
+  prefers-reduced-motion); keyframes/utilities in globals.css under `.mkt`.
+- Logged-in users still skip the landing (redirect to /dashboard or /admin).
+- Fixed local tooling: corrupted `@next/swc-darwin-arm64` binary (was
+  forcing WASM fallback + webpack cache corruption) — reinstalled per
+  lockfile; builds went 8.7s → 1.6s.
+- Verified in browser: desktop + mobile viewports, hamburger menu, star demo
+  interaction, counters, production build (40 pages).
+
 ### 2026-07-02 — Session 3: Postgres/Supabase, all of Phase 2, platform admin panel
 - **Supabase**: new account/project "HubzCRM" (`mmmsjhpdoljutekishht`,
   ap-northeast-1). MCP server `supabase-hubz` registered in the project-local
