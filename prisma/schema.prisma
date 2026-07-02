@@ -1,0 +1,170 @@
+// LoyaltyCRM data model.
+// Dev runs on SQLite for zero-setup; the schema deliberately avoids
+// SQLite-incompatible features (enums, Json columns) so switching to
+// PostgreSQL is a provider + DATABASE_URL change and a fresh migration.
+// Enum-like fields are Strings with the allowed values noted inline;
+// they are validated at the API layer with zod (src/lib/validation.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique // public handle used in QR review URLs: /r/[slug]
+  logoUrl         String?
+  address         String?
+  phone           String?
+  email           String?
+  website         String?
+  googleReviewUrl String?
+  socialLinks     String? // JSON string: { instagram?, facebook?, tiktok? }
+  timezone        String   @default("UTC")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users     User[]
+  customers Customer[]
+  visits    Visit[]
+  reviews   Review[]
+  rewards   Reward[]
+  campaigns Campaign[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("OWNER") // OWNER | STAFF | ADMIN
+  businessId   String?
+  business     Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Customer {
+  id               String    @id @default(cuid())
+  businessId       String
+  business         Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  firstName        String
+  lastName         String?
+  phone            String?
+  email            String?
+  birthday         DateTime?
+  marketingConsent Boolean   @default(false)
+  totalVisits      Int       @default(0)
+  totalSpendCents  Int       @default(0) // money stored as integer cents
+  loyaltyPoints    Int       @default(0)
+  tier             String    @default("BRONZE") // BRONZE | SILVER | GOLD | VIP
+  lastVisitAt      DateTime?
+  tags             String    @default("") // comma-separated, e.g. "regular,vegan"
+  notes            String?
+  source           String    @default("MANUAL") // MANUAL | QR | IMPORT
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  visits      Visit[]
+  reviews     Review[]
+  redemptions Redemption[]
+
+  @@index([businessId, lastVisitAt])
+  @@index([businessId, phone])
+  @@index([businessId, tier])
+  @@index([businessId, createdAt])
+}
+
+model Visit {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  amountCents  Int      @default(0)
+  pointsEarned Int      @default(0)
+  note         String?
+  visitedAt    DateTime @default(now())
+
+  @@index([businessId, visitedAt])
+  @@index([customerId])
+}
+
+// One row per QR review-funnel interaction. Ratings >= 4 get routed to
+// Google; ratings <= 3 stay private and appear in the feedback inbox
+// (status NEW until the owner resolves them).
+model Review {
+  id            String    @id @default(cuid())
+  businessId    String
+  business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  rating        Int // 1-5
+  comment       String?
+  clickedGoogle Boolean   @default(false)
+  status        String    @default("NEW") // NEW | RESOLVED
+  createdAt     DateTime  @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([businessId, status, rating])
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  pointsCost  Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  redemptions Redemption[]
+
+  @@index([businessId])
+}
+
+model Redemption {
+  id          String   @id @default(cuid())
+  rewardId    String
+  reward      Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  pointsSpent Int
+  redeemedAt  DateTime @default(now())
+
+  @@index([customerId])
+}
+
+model Campaign {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String
+  type       String // WINBACK | BIRTHDAY | VIP | FIRST_VISIT | MANUAL
+  channel    String   @default("SMS") // SMS | EMAIL | WHATSAPP
+  message    String
+  status     String   @default("DRAFT") // DRAFT | ACTIVE | PAUSED | SENT
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  recipients CampaignRecipient[]
+
+  @@index([businessId, status])
+}
+
+model CampaignRecipient {
+  id         String    @id @default(cuid())
+  campaignId String
+  campaign   Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customerId String
+  status     String    @default("PENDING") // PENDING | SENT | FAILED
+  sentAt     DateTime?
+
+  @@index([campaignId, status])
+}
