@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { badRequest, json, notFound, parseBody, serverError } from "@/lib/http";
 import { publicReviewDetailsSchema, tierForVisits } from "@/lib/validation";
+import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 /**
  * PUBLIC endpoint — no auth. Steps two and three of the QR funnel: the guest
@@ -11,10 +12,20 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limited = await rateLimit({
+    key: `pub:detail:${clientIp(req)}`,
+    limit: 60,
+    windowSeconds: 60 * 60,
+  });
+  if (limited) return limited;
+
   const { id } = await params;
   const parsed = await parseBody(req, publicReviewDetailsSchema);
   if (parsed.error) return parsed.error;
   const data = parsed.data;
+
+  // Bot honeypot tripped: pretend success, write nothing.
+  if (data.website) return json({ ok: true });
 
   try {
     const review = await db.review.findUnique({ where: { id } });

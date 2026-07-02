@@ -27,13 +27,11 @@ export async function GET(req: NextRequest) {
 
   const where: Prisma.CustomerWhereInput = { businessId };
   if (q) {
-    // Note: Prisma "contains" is case-sensitive on SQLite (no mode:
-    // "insensitive"); acceptable for the MVP.
     where.OR = [
-      { firstName: { contains: q } },
-      { lastName: { contains: q } },
+      { firstName: { contains: q, mode: "insensitive" } },
+      { lastName: { contains: q, mode: "insensitive" } },
       { phone: { contains: q } },
-      { email: { contains: q } },
+      { email: { contains: q, mode: "insensitive" } },
     ];
   }
   if (tier) where.tier = tier;

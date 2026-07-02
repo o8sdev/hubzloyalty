@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { parseBody, badRequest, json, serverError } from "@/lib/http";
 import { registerSchema, slugify } from "@/lib/validation";
 import { createSession } from "@/lib/session";
+import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 async function uniqueSlug(base: string): Promise<string> {
   let slug = base;
@@ -15,6 +16,13 @@ async function uniqueSlug(base: string): Promise<string> {
 }
 
 export async function POST(req: Request) {
+  const limited = await rateLimit({
+    key: `auth:register:${clientIp(req)}`,
+    limit: 5,
+    windowSeconds: 60 * 60,
+  });
+  if (limited) return limited;
+
   const parsed = await parseBody(req, registerSchema);
   if (parsed.error) return parsed.error;
   const { businessName, name, email, password } = parsed.data;
@@ -44,6 +52,7 @@ export async function POST(req: Request) {
       userId: user.id,
       businessId: business.id,
       role: user.role,
+      platformAdmin: false,
       name: user.name,
       email: user.email,
     });

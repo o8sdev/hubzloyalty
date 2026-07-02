@@ -3,11 +3,16 @@ import { db } from "@/lib/db";
 import { AppNav } from "@/components/app-nav";
 import { LogoutButton } from "@/components/logout-button";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await requireSession();
+  // Platform-only accounts (no business) live in /admin, not here.
+  if (!session.businessId) {
+    redirect(session.platformAdmin ? "/admin" : "/login");
+  }
   const business = await db.business.findUnique({
     where: { id: session.businessId },
     select: { name: true, slug: true },

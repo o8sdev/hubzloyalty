@@ -41,12 +41,11 @@ export default async function CustomersPage({
 
   const where: Prisma.CustomerWhereInput = { businessId: session.businessId };
   if (q) {
-    // Note: Prisma "contains" is case-sensitive on SQLite — acceptable for MVP.
     where.OR = [
-      { firstName: { contains: q } },
-      { lastName: { contains: q } },
+      { firstName: { contains: q, mode: "insensitive" } },
+      { lastName: { contains: q, mode: "insensitive" } },
       { phone: { contains: q } },
-      { email: { contains: q } },
+      { email: { contains: q, mode: "insensitive" } },
     ];
   }
   if (tier) where.tier = tier;

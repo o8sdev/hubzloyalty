@@ -141,6 +141,37 @@ async function main(): Promise<void> {
     },
   });
 
+  // --- Platform admin ---------------------------------------------------------
+  // The systems-admin account for /admin. Credentials come from env so real
+  // deploys never ship a default password. Upsert keeps an existing admin's
+  // password when ADMIN_PASSWORD is unset.
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@loyaltycrm.test";
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+  if (!existingAdmin && !adminPassword) {
+    throw new Error(
+      "ADMIN_PASSWORD must be set in .env to create the platform admin account"
+    );
+  }
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    create: {
+      email: adminEmail,
+      passwordHash: await bcrypt.hash(adminPassword!, 10),
+      name: "Platform Admin",
+      role: "ADMIN",
+      isPlatformAdmin: true,
+    },
+    update: {
+      isPlatformAdmin: true,
+      ...(adminPassword
+        ? { passwordHash: await bcrypt.hash(adminPassword, 10) }
+        : {}),
+    },
+  });
+
   // --- Customers ------------------------------------------------------------
   const customerCount = 30;
   const customerIds: string[] = [];
@@ -267,6 +298,8 @@ async function main(): Promise<void> {
   console.log("Demo login:");
   console.log(`  Email:    ${DEMO_EMAIL}`);
   console.log(`  Password: ${DEMO_PASSWORD}`);
+  console.log("");
+  console.log(`Platform admin: ${admin.email} (password from ADMIN_PASSWORD in .env)`);
 }
 
 main()

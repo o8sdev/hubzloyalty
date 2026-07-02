@@ -60,13 +60,17 @@ export function ReviewFlow({
   const [consent, setConsent] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
 
+  // Bot honeypot: hidden field humans never see or fill. Sent with every
+  // request; the API silently drops submissions that carry a value.
+  const [website, setWebsite] = useState("");
+
   async function patchReview(body: Record<string, unknown>): Promise<boolean> {
     if (!reviewId) return false;
     try {
       const res = await fetch(`/api/public/reviews/${reviewId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, website: website || undefined }),
       });
       return res.ok;
     } catch {
@@ -83,7 +87,11 @@ export function ReviewFlow({
       const res = await fetch("/api/public/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, rating: value }),
+        body: JSON.stringify({
+          slug,
+          rating: value,
+          website: website || undefined,
+        }),
       });
       const data = (await res.json()) as {
         reviewId?: string;
@@ -201,6 +209,17 @@ export function ReviewFlow({
 
   return (
     <div className="mt-8 w-full">
+      {/* Honeypot — offscreen, ignored by humans, filled by naive bots. */}
+      <input
+        type="text"
+        name="website"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute -left-[9999px] h-0 w-0 opacity-0"
+      />
       {step === "rate" ? (
         <div className="flex flex-col items-center gap-4">
           <div

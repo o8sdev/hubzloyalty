@@ -1,17 +1,17 @@
 // LoyaltyCRM data model.
-// Dev runs on SQLite for zero-setup; the schema deliberately avoids
-// SQLite-incompatible features (enums, Json columns) so switching to
-// PostgreSQL is a provider + DATABASE_URL change and a fresh migration.
-// Enum-like fields are Strings with the allowed values noted inline;
-// they are validated at the API layer with zod (src/lib/validation.ts).
+// Runs on PostgreSQL (Supabase). DATABASE_URL goes through the transaction
+// pooler (serverless-safe); DIRECT_URL is a session-mode connection used by
+// prisma migrate. Enum-like fields stay Strings with the allowed values
+// noted inline; they are validated at the API layer (src/lib/validation.ts).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Business {
@@ -35,6 +35,15 @@ model Business {
   silverThreshold Int @default(5)
   goldThreshold   Int @default(10)
   vipThreshold    Int @default(20)
+
+  // Owner notification preferences (Phase 2 emails).
+  notifyComplaints   Boolean @default(true)
+  notifyWeeklyDigest Boolean @default(true)
+
+  // Set by a platform admin to suspend the business: blocks member logins
+  // and returns 404 on the public funnel. Null = active.
+  suspendedAt DateTime?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -52,10 +61,29 @@ model User {
   passwordHash String
   name         String
   role         String    @default("OWNER") // OWNER | STAFF | ADMIN
+  // Platform operator (systems admin): full access to /admin across all
+  // tenants. Independent of the per-business role; businessId may be null.
+  isPlatformAdmin Boolean @default(false)
   businessId   String?
   business     Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  passwordResetTokens PasswordResetToken[]
+}
+
+// Single-use password reset tokens. Only a SHA-256 hash is stored; the raw
+// token exists solely inside the emailed link.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Customer {
@@ -118,6 +146,8 @@ model Review {
   comment       String?
   clickedGoogle Boolean   @default(false)
   status        String    @default("NEW") // NEW | RESOLVED
+  // When the rating<=3 complaint alert email went out (dedupe guard).
+  alertSentAt   DateTime?
   createdAt     DateTime  @default(now())
 
   @@index([businessId, createdAt])
@@ -177,4 +207,29 @@ model CampaignRecipient {
   sentAt     DateTime?
 
   @@index([campaignId, status])
+}
+
+// Audit trail of every outbound email. status DEV_LOGGED means no
+// RESEND_API_KEY was configured, so the message was logged instead of sent.
+model EmailLog {
+  id         String   @id @default(cuid())
+  businessId String? // null for platform-level mail (e.g. password resets)
+  to         String
+  subject    String
+  kind       String // COMPLAINT_ALERT | WEEKLY_DIGEST | PASSWORD_RESET | TEST
+  status     String // SENT | FAILED | DEV_LOGGED
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([kind, createdAt])
+  @@index([createdAt])
+}
+
+// Fixed-window rate limiting for public endpoints. One row per (route, ip)
+// bucket; incremented atomically with INSERT ... ON CONFLICT (src/lib/ratelimit.ts).
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  windowEnd DateTime
 }

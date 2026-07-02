@@ -76,6 +76,15 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(32).max(200),
+  password: z.string().min(8).max(200),
+});
+
 // ---------------------------------------------------------------------------
 // Business profile
 // ---------------------------------------------------------------------------
@@ -112,6 +121,8 @@ export const businessUpdateSchema = z.object({
     })
     .optional(),
   timezone: z.string().trim().max(60).optional(),
+  notifyComplaints: z.boolean().optional(),
+  notifyWeeklyDigest: z.boolean().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -170,10 +181,15 @@ export const customerListQuerySchema = z.object({
 export const publicReviewCreateSchema = z.object({
   slug: z.string().trim().min(1).max(120),
   rating: z.number().int().min(1).max(5),
+  // Honeypot: hidden form field real guests never fill. A value here means
+  // a bot; the API pretends success and drops the submission.
+  website: z.string().max(200).optional(),
 });
 
 /** Second step of the public funnel: optional comment + optional contact capture. */
 export const publicReviewDetailsSchema = z.object({
+  // Honeypot (see publicReviewCreateSchema).
+  website: z.string().max(200).optional(),
   comment: optionalTrimmed(2000),
   clickedGoogle: z.boolean().optional(),
   customer: z
@@ -224,3 +240,53 @@ export function tagsToArray(tags: string): string[] {
 export function arrayToTags(tags: string[] | undefined): string {
   return (tags ?? []).map((t) => t.trim()).filter(Boolean).join(",");
 }
+
+// ---------------------------------------------------------------------------
+// Platform admin (/api/admin/*)
+// ---------------------------------------------------------------------------
+
+const slugField = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Lowercase letters, numbers and dashes only")
+  .min(2)
+  .max(60);
+
+export const adminBusinessCreateSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  slug: slugField.optional(),
+  owner: z.object({
+    name: z.string().trim().min(1).max(100),
+    email: z.string().trim().toLowerCase().email(),
+    password: z.string().min(8).max(200),
+  }),
+});
+
+export const adminBusinessUpdateSchema = businessUpdateSchema.extend({
+  slug: slugField.optional(),
+  suspended: z.boolean().optional(),
+  // Loyalty changes go through applyLoyaltyConfig (bulk tier recompute).
+  loyalty: loyaltySettingsSchema.optional(),
+});
+
+export const adminUserCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8).max(200),
+  role: z.enum(ROLES).optional().default("STAFF"),
+  businessId: z.string().trim().min(1).nullable().optional(),
+  isPlatformAdmin: z.boolean().optional().default(false),
+});
+
+export const adminUserUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  role: z.enum(ROLES).optional(),
+  businessId: z.string().trim().min(1).nullable().optional(),
+  password: z.string().min(8).max(200).optional(),
+  isPlatformAdmin: z.boolean().optional(),
+});
+
+export const testEmailSchema = z.object({
+  to: z.string().trim().toLowerCase().email(),
+});

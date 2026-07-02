@@ -7,8 +7,11 @@ const SESSION_DAYS = 30;
 
 export type Session = {
   userId: string;
+  // "" for platform-only accounts (platform admins without a business).
   businessId: string;
   role: string; // OWNER | STAFF | ADMIN
+  // Platform operator: may access /admin across all tenants.
+  platformAdmin: boolean;
   name: string;
   email: string;
 };
@@ -23,6 +26,7 @@ export async function createSession(session: Session) {
   const token = await new SignJWT({
     businessId: session.businessId,
     role: session.role,
+    platformAdmin: session.platformAdmin,
     name: session.name,
     email: session.email,
   })
@@ -51,6 +55,7 @@ export async function getSession(): Promise<Session | null> {
       userId: payload.sub,
       businessId: payload.businessId,
       role: String(payload.role ?? "OWNER"),
+      platformAdmin: payload.platformAdmin === true,
       name: String(payload.name ?? ""),
       email: String(payload.email ?? ""),
     };
@@ -63,6 +68,17 @@ export async function getSession(): Promise<Session | null> {
 export async function requireSession(): Promise<Session> {
   const session = await getSession();
   if (!session) redirect("/login");
+  return session;
+}
+
+/**
+ * For /admin pages: requires a platform-admin session. Non-admins land on
+ * their own dashboard rather than an error page.
+ */
+export async function requirePlatformAdmin(): Promise<Session> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!session.platformAdmin) redirect("/dashboard");
   return session;
 }
 

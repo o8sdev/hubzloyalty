@@ -21,14 +21,50 @@ Demo owner login: `demo@loyaltycrm.test` / `demo1234` · guest page: `/r/demo-ca
 conventions in `CLAUDE.md`. Stack: Next.js 15, TypeScript, Tailwind v4,
 Prisma 6, SQLite dev (Postgres for prod later), jose JWT sessions.
 
-**Roadmap position:** Phase 1 (review funnel + CRM + dashboard) is done.
-Next is Phase 2: complaint alert emails, weekly owner digest, password
-reset, rate limiting, first deploy. Phases and their build triggers:
-`docs/04-roadmap.md`.
+**Roadmap position:** Phases 1 AND 2 are done (plus a platform-admin panel
+at `/admin`). The only Phase 2 item left is the first Vercel deploy. Phases
+and their build triggers: `docs/04-roadmap.md`.
 
 ---
 
 ## Session log (newest first)
+
+### 2026-07-02 — Session 3: Postgres/Supabase, all of Phase 2, platform admin panel
+- **Supabase**: new account/project "HubzCRM" (`mmmsjhpdoljutekishht`,
+  ap-northeast-1). MCP server `supabase-hubz` registered in the project-local
+  Claude config (PAT auth, scoped to this project). DB password was reset via
+  the Management API; connection strings live in `.env` (pooler transaction
+  mode for runtime, session mode for migrations).
+- **Postgres migration**: provider switched to `postgresql` + `directUrl`,
+  fresh init migration, RLS enabled on every table (Prisma is table owner —
+  unaffected; blocks Supabase's auto data API). Customer search is now
+  case-insensitive (`mode: "insensitive"`).
+- **Phase 2 built and browser-verified end-to-end**:
+  - Mail layer `src/lib/mail.ts` (Resend REST, EmailLog audit table,
+    DEV_LOGGED fallback without a key) — no RESEND_API_KEY configured yet.
+  - Complaint alert on rating≤3 (fires via `after()`, deduped by
+    `Review.alertSentAt`, toggle in Settings → Notifications).
+  - Weekly digest (`src/lib/digest.ts`): cron route (Bearer CRON_SECRET,
+    Mondays 08:00 UTC in vercel.json) + admin run-now; also purges stale
+    rate-limit rows.
+  - Password reset: /forgot-password + /reset-password, hashed single-use 1h
+    tokens, no user enumeration; reset link is dev-logged without Resend.
+  - Rate limiting (Postgres fixed-window, fail-open) on public funnel + auth
+    endpoints; `website` honeypot on the funnel forms.
+- **Platform admin panel `/admin`** (dark shell): overview stats, business
+  CRUD + suspend (blocks login + 404s the funnel) + delete (typed confirm),
+  user CRUD (self-demote/delete blocked), cross-tenant review browser,
+  email log + test-send, system health (DB latency, env checks). Gated by
+  `User.isPlatformAdmin` JWT claim; seed upserts the admin from
+  `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` (currently rhlhabibli@gmail.com).
+- **Gotcha discovered**: Tokyo region + distant dev machine = ~1.8s warm
+  queries, ~6s connection opens. `.env` now uses
+  `connection_limit=10&pool_timeout=60&connect_timeout=30`. Consider moving
+  the Supabase project to a closer region (DB is trivially recreatable) or
+  deploying Vercel functions in hnd1/icn1.
+- **In flight / next**: Vercel deploy (only remaining Phase 2 item), set
+  RESEND_API_KEY + MAIL_FROM when the sending domain exists, Phase 2
+  paperwork (Meta/WhatsApp/A2P). Committed locally; not yet pushed.
 
 ### 2026-07-02 — Session 2: per-business loyalty config, GitHub setup
 - **Loyalty rules are now configurable per business** (user requirement:

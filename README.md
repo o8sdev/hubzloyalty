@@ -8,14 +8,16 @@ with visit-driven loyalty.
 ## Quick start
 
 ```bash
+cp .env.example .env       # fill in Supabase URLs + secrets (see comments)
 npm install                # also runs prisma generate
-npm run db:migrate         # create/apply migrations (SQLite dev.db)
-npm run db:seed            # demo business + realistic data
+npm run db:migrate         # apply migrations (Supabase Postgres)
+npm run db:seed            # demo business + realistic data + platform admin
 npm run dev                # http://localhost:3000
 ```
 
 Demo login: `demo@loyaltycrm.test` / `demo1234`
 Demo guest funnel: http://localhost:3000/r/demo-cafe
+Platform admin: `ADMIN_EMAIL`/`ADMIN_PASSWORD` from `.env` → lands at `/admin`
 
 ## Documentation
 
@@ -29,9 +31,12 @@ Demo guest funnel: http://localhost:3000/r/demo-cafe
 
 ## Status
 
-Phase 1 (the wedge) is implemented: auth, business profile + QR, public
-review funnel, feedback inbox, customer CRM, dashboard. See the roadmap for
-what's next and what deliberately isn't built yet.
+Phase 1 (the wedge) and Phase 2 (notifications & trust) are implemented:
+auth + password reset, business profile + QR, public review funnel (rate
+limited + bot guarded), feedback inbox with complaint alert emails, weekly
+owner digest, customer CRM, dashboard, Supabase Postgres, and a platform
+admin panel at `/admin`. Remaining before the first pilot: Vercel deploy.
+See the roadmap for what's next and what deliberately isn't built yet.
 
 ## Compliance notes
 

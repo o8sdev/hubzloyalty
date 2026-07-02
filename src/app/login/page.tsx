@@ -31,10 +31,11 @@ function LoginForm() {
       const next = searchParams.get("next");
       // Same-origin paths only: "//evil.com" and "/\evil.com" both resolve
       // cross-origin, so a bare startsWith("/") check is an open redirect.
+      const fallback = data.admin ? "/admin" : "/dashboard";
       const safeNext =
         next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
           ? next
-          : "/dashboard";
+          : fallback;
       router.push(safeNext);
       router.refresh();
     } catch {
@@ -83,6 +84,14 @@ function LoginForm() {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Logging in…" : "Log in"}
         </Button>
+        <p className="text-center">
+          <Link
+            href="/forgot-password"
+            className="text-sm text-slate-500 hover:text-brand-700 hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </p>
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
         New here?{" "}

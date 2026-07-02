@@ -16,9 +16,14 @@ export default async function PublicReviewPage({
 
   const business = await db.business.findUnique({
     where: { slug },
-    select: { name: true, logoUrl: true, googleReviewUrl: true },
+    select: {
+      name: true,
+      logoUrl: true,
+      googleReviewUrl: true,
+      suspendedAt: true,
+    },
   });
-  if (!business) notFound();
+  if (!business || business.suspendedAt) notFound();
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-slate-50 px-4 py-10">

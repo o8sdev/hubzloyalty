@@ -65,3 +65,13 @@ export async function requireApiSession(): Promise<
   if (!session?.businessId) return { error: unauthorized() };
   return { session };
 }
+
+/** For /api/admin/* handlers: requires a platform-admin session. */
+export async function requireApiPlatformAdmin(): Promise<
+  { session: Session; error?: undefined } | { session?: undefined; error: NextResponse }
+> {
+  const session = await getSession();
+  if (!session) return { error: unauthorized() };
+  if (!session.platformAdmin) return { error: forbidden() };
+  return { session };
+}

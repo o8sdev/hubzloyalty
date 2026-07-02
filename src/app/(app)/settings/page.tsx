@@ -10,6 +10,7 @@ import {
 } from "@/components/ui";
 import { SettingsForm } from "./settings-form";
 import { LoyaltyForm } from "./loyalty-form";
+import { NotificationsForm } from "./notifications-form";
 
 type SocialLinks = { instagram?: string; facebook?: string; tiktok?: string };
 
@@ -89,6 +90,22 @@ export default async function SettingsPage() {
                 silverThreshold: business.silverThreshold,
                 goldThreshold: business.goldThreshold,
                 vipThreshold: business.vipThreshold,
+              }}
+            />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Notifications"
+            description="Which emails you and your admins receive."
+          />
+          <CardBody>
+            <NotificationsForm
+              canEdit={canEdit}
+              initial={{
+                notifyComplaints: business.notifyComplaints,
+                notifyWeeklyDigest: business.notifyWeeklyDigest,
               }}
             />
           </CardBody>

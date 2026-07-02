@@ -14,14 +14,23 @@ seed data.
 **Exit criteria:** 1–3 pilot cafes live; owner can answer "how many Google
 reviews and intercepted complaints this month?" from the dashboard.
 
-## Phase 2 — Notifications & trust (next)
+## Phase 2 — Notifications & trust (BUILT except deploy)
 
-- Complaint alert email to the owner on every `rating<=3` submission (Resend).
-- Weekly digest email: scans, avg rating, new contacts, Google clicks — the
-  persona review was blunt: owners live in their inbox, not in dashboards.
-- Password reset flow (Resend).
-- Rate limiting on `/api/public/*` + basic bot guard.
-- Postgres migration + Vercel deploy for the first real pilot.
+- ✅ Complaint alert email to the owner on every `rating<=3` submission
+  (fires via `after()` from the funnel POST; dedupe on `Review.alertSentAt`;
+  toggle in Settings → Notifications).
+- ✅ Weekly digest email (scans, avg rating, new contacts, Google clicks,
+  visits, open complaints) — cron route + `vercel.json` schedule (Mon 08:00
+  UTC) + admin "run now".
+- ✅ Password reset flow (hashed single-use 1h tokens; without a Resend key
+  the link is dev-logged to console + EmailLog).
+- ✅ Rate limiting on `/api/public/*` and `/api/auth/*` (Postgres
+  fixed-window, fail-open) + honeypot bot guard on the funnel.
+- ✅ Postgres migration (Supabase, RLS enabled on all tables) — Vercel deploy
+  still pending for the first real pilot.
+- ➕ Pulled forward: **platform-admin panel** at `/admin` (cross-tenant
+  overview, business/user CRUD, suspension, review browser, email log,
+  system health) gated by `User.isPlatformAdmin`.
 - **Paperwork in parallel:** Meta Business verification, WhatsApp template
   approval, SMS sender/A2P registration (1–4+ week lead times).
 
