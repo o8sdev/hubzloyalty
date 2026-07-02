@@ -28,6 +28,13 @@ function LoginForm() {
         setError(data.error ?? "Login failed");
         return;
       }
+      // Forced first-login password change takes precedence over both the
+      // admin home and any ?next target.
+      if (data.mustChangePassword) {
+        router.push("/change-password");
+        router.refresh();
+        return;
+      }
       const next = searchParams.get("next");
       // Same-origin paths only: "//evil.com" and "/\evil.com" both resolve
       // cross-origin, so a bare startsWith("/") check is an open redirect.
@@ -94,9 +101,12 @@ function LoginForm() {
         </p>
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
-        New here?{" "}
-        <Link href="/register" className="font-medium text-brand-700 hover:underline">
-          Create your business account
+        Want LoyaltyCRM for your business?{" "}
+        <Link
+          href="/request-demo"
+          className="font-medium text-brand-700 hover:underline"
+        >
+          Request a demo
         </Link>
       </p>
     </Card>

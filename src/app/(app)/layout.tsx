@@ -9,6 +9,8 @@ export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await requireSession();
+  // One-time-password accounts must set their own password before using the app.
+  if (session.mustChangePassword) redirect("/change-password");
   // Platform-only accounts (no business) live in /admin, not here.
   if (!session.businessId) {
     redirect(session.platformAdmin ? "/admin" : "/login");

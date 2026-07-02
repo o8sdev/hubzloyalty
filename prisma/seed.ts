@@ -289,11 +289,57 @@ async function main(): Promise<void> {
     reviewCount++;
   }
 
+  // --- Demo requests ----------------------------------------------------------
+  // Sample leads for the /admin/demo-requests inbox. Idempotent: rows keyed
+  // by these sample emails are wiped and recreated on every run.
+  const DEMO_REQUEST_EMAILS = [
+    "maria@harborlightbakery.test",
+    "james@thedailygrind.test",
+    "promo@rankedfirstseo.test",
+  ] as const;
+  await prisma.demoRequest.deleteMany({
+    where: { email: { in: [...DEMO_REQUEST_EMAILS] } },
+  });
+  const demoRequests = await prisma.demoRequest.createMany({
+    data: [
+      {
+        businessName: "Harborlight Bakery",
+        contactName: "Maria Santos",
+        email: DEMO_REQUEST_EMAILS[0],
+        phone: "+1 503 555 0177",
+        message:
+          "We run a small bakery in the Pearl District and keep losing regulars to the new place across the street.\nA friend mentioned your QR review cards — could we see a demo some morning next week?",
+        status: "NEW",
+        createdAt: new Date(now - 2 * DAY_MS),
+      },
+      {
+        businessName: "The Daily Grind",
+        contactName: "James Okafor",
+        email: DEMO_REQUEST_EMAILS[1],
+        phone: "+1 503 555 0161",
+        status: "CONTACTED",
+        adminNotes:
+          "Called — wants a walkthrough with his co-owner. Follow up Monday to schedule.",
+        createdAt: new Date(now - 9 * DAY_MS),
+      },
+      {
+        businessName: "RankedFirst SEO",
+        contactName: "Alex Promo",
+        email: DEMO_REQUEST_EMAILS[2],
+        message: "We can put YOUR platform on page 1 of Google. Reply for a free audit!",
+        status: "DISMISSED",
+        adminNotes: "Spam — not a restaurant.",
+        createdAt: new Date(now - 15 * DAY_MS),
+      },
+    ],
+  });
+
   console.log("Seed complete.");
   console.log(`  Business:  ${business.name} (slug: ${business.slug})`);
   console.log(`  Customers: ${customerIds.length}`);
   console.log(`  Visits:    ${totalVisitsCreated}`);
   console.log(`  Reviews:   ${reviewCount}`);
+  console.log(`  Demo requests: ${demoRequests.count}`);
   console.log("");
   console.log("Demo login:");
   console.log(`  Email:    ${DEMO_EMAIL}`);

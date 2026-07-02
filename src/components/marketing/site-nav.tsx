@@ -65,8 +65,8 @@ export function SiteNav() {
           <Link href="/login" className="mkt-link text-[0.9rem] font-medium text-ink-soft hover:text-ink">
             Log in
           </Link>
-          <Link href="/register" className="mkt-btn mkt-btn-ink px-5 py-2.5 text-sm">
-            Start free
+          <Link href="/request-demo" className="mkt-btn mkt-btn-ink px-5 py-2.5 text-sm">
+            Request a demo
           </Link>
         </div>
 
@@ -110,8 +110,8 @@ export function SiteNav() {
               <Link href="/login" className="mkt-btn mkt-btn-ghost flex-1 px-5 py-3 text-sm">
                 Log in
               </Link>
-              <Link href="/register" className="mkt-btn mkt-btn-primary flex-1 px-5 py-3 text-sm">
-                Start free
+              <Link href="/request-demo" className="mkt-btn mkt-btn-primary flex-1 px-5 py-3 text-sm">
+                Request a demo
               </Link>
             </div>
           </div>

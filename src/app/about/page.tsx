@@ -256,8 +256,8 @@ export default function AboutPage() {
                 direct line to the people building your software.
               </p>
               <div className="mt-9 flex flex-wrap justify-center gap-4">
-                <Link href="/register" className="mkt-btn mkt-btn-primary px-8 py-4 text-base">
-                  Start free →
+                <Link href="/request-demo" className="mkt-btn mkt-btn-primary px-8 py-4 text-base">
+                  Request a demo →
                 </Link>
                 <Link
                   href="/r/demo-cafe"

@@ -25,9 +25,50 @@ Prisma 6, SQLite dev (Postgres for prod later), jose JWT sessions.
 at `/admin`). The only Phase 2 item left is the first Vercel deploy. Phases
 and their build triggers: `docs/04-roadmap.md`.
 
+**Onboarding is INVITE-ONLY** (as of Session 5): no self-registration.
+Prospects submit `/request-demo`; the platform admin works the inbox at
+`/admin/demo-requests` and provisions businesses with a one-time password;
+owners set their own password at first login.
+
 ---
 
 ## Session log (newest first)
+
+### 2026-07-02 — Session 5 (Windows device): invite-only onboarding
+- **Registration is gone.** `/register` redirects to the new `/request-demo`
+  marketing page (café-print design); `/api/auth/register` always 403s. All
+  marketing CTAs relabeled ("Request a demo"), copy softened to
+  white-glove-onboarding language.
+- **Demo requests**: public form (rate-limited 3/h/IP + honeypot) creates a
+  `DemoRequest` row and emails every platform admin. New admin inbox at
+  `/admin/demo-requests` (status tabs NEW/CONTACTED/CONVERTED/DISMISSED,
+  notes, mailto/tel links, overview stat card, nav item). CONVERTED is a
+  terminal status only the provisioning flow can set.
+- **One-time-password provisioning**: `/admin/businesses/new` no longer asks
+  for a password — the server generates `K7MF-2QWX-9HTC`-style OTPs (crypto
+  random, unambiguous alphabet), shown exactly once with a copy button.
+  `?fromRequest=<id>` prefills from a demo request and marks it CONVERTED in
+  the same transaction. Deleting a business un-links + reverts its source
+  request to CONTACTED.
+- **Forced password change**: owners provisioned with an OTP get
+  `mustChangePassword`; login routes them to `/change-password` ("Set your
+  password") and both app shells (tenant + admin) redirect there until done.
+  Voluntary changes live in Settings → Account (current password required);
+  the email reset flow also clears the flag. Session JWT carries the flag and
+  is re-issued on change.
+- New migration `20260702150000_invite_only_demo_requests` (DemoRequest table
+  + User.mustChangePassword + RLS) — generated offline, applies with
+  `npm run db:migrate`.
+- Built by 4 parallel agents; build passed first try (46 routes); adversarial
+  review confirmed 6 minor findings, all fixed (dismissed-lead conversion
+  guard, admin-layout flag enforcement, CONVERTED transition lockdown,
+  settings-form success feedback, client minLength, dangling
+  convertedBusinessId on business delete).
+- **Still pending on this device**: `.env` with the Supabase connection
+  strings hasn't been copied from the Mac yet, so browser verification of
+  this feature and the earlier register-failure report are both blocked on
+  that. After copying: `npm run db:migrate && npm run dev`, then log in at
+  `/admin` and walk demo-request → provision → OTP login → forced change.
 
 ### 2026-07-02 — Session 4: marketing site (landing + about), "café print" design
 - Replaced the placeholder landing with a full marketing site in a committed

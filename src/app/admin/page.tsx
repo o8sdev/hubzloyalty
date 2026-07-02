@@ -19,6 +19,7 @@ export default async function AdminOverviewPage() {
   const [
     businessCount,
     suspendedCount,
+    newDemoRequestCount,
     userCount,
     customerCount,
     visitCount,
@@ -31,6 +32,7 @@ export default async function AdminOverviewPage() {
   ] = await Promise.all([
     db.business.count(),
     db.business.count({ where: { suspendedAt: { not: null } } }),
+    db.demoRequest.count({ where: { status: "NEW" } }),
     db.user.count(),
     db.customer.count(),
     db.visit.count(),
@@ -81,6 +83,13 @@ export default async function AdminOverviewPage() {
           value={businessCount}
           hint={suspendedCount > 0 ? `${suspendedCount} suspended` : "all active"}
         />
+        <Link href="/admin/demo-requests" className="block">
+          <StatCard
+            label="New demo requests"
+            value={newDemoRequestCount}
+            hint="awaiting first contact"
+          />
+        </Link>
         <StatCard label="Users" value={userCount} />
         <StatCard label="Customers" value={customerCount} hint="across all tenants" />
         <StatCard label="Visits logged" value={visitCount} />

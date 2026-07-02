@@ -37,9 +37,14 @@ export async function POST(req: Request) {
       return badRequest("This reset link is invalid or has expired");
     }
 
+    // Proving control of the email supersedes the one-time-password
+    // requirement, so a pending forced change is cleared too.
     await db.user.update({
       where: { id: record.userId },
-      data: { passwordHash: await bcrypt.hash(password, 10) },
+      data: {
+        passwordHash: await bcrypt.hash(password, 10),
+        mustChangePassword: false,
+      },
     });
 
     return json({ ok: true });

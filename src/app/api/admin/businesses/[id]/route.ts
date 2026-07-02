@@ -88,6 +88,13 @@ export async function DELETE(
       db.user.deleteMany({
         where: { id: { in: memberIds }, isPlatformAdmin: false },
       }),
+      // Un-link any demo request that converted into this business: clears
+      // the now-dead "View business" link and reverts the lead to CONTACTED
+      // so it can be re-worked or dismissed.
+      db.demoRequest.updateMany({
+        where: { convertedBusinessId: id },
+        data: { convertedBusinessId: null, status: "CONTACTED" },
+      }),
     ]);
 
     return json({ ok: true });

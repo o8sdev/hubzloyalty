@@ -9,6 +9,13 @@ Supabase Postgres (project mmmsjhpdoljutekishht), jose JWT cookie sessions.
 - `npm run db:migrate` / `npm run db:seed` (demo login: demo@loyaltycrm.test / demo1234, funnel: /r/demo-cafe, platform admin: ADMIN_EMAIL/ADMIN_PASSWORD from .env → /admin)
 
 ## Hard rules
+- **Onboarding is invite-only.** There is NO self-serve registration:
+  `/api/auth/register` always returns 403 and `/register` redirects to
+  `/request-demo`. Businesses are provisioned by the platform admin
+  (`/admin/businesses/new`, optionally from a demo request) with a
+  server-generated one-time password; the owner must change it at first
+  login (`User.mustChangePassword` → `/change-password`). Never reintroduce
+  public signup.
 - **Tenancy:** every authenticated Prisma query is scoped by `session.businessId`
   (`findFirst({ where: { id, businessId } })`, never bare `findUnique(id)`).
   Public endpoints (`/api/public/*`) resolve business from slug/row, never

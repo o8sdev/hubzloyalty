@@ -109,7 +109,7 @@ const FAQS = [
   },
   {
     q: "How long does setup take?",
-    a: "About ten minutes: create your account, paste your Google review link, print the QR. The customer list starts building with the first scan.",
+    a: "Almost nothing on your end: we onboard you personally — account, Google review link and printed QR are set up for you, then you get your login. The customer list starts building with the first scan.",
   },
   {
     q: "Can I cancel?",
@@ -184,8 +184,8 @@ export default async function HomePage() {
               </p>
 
               <div className="mkt-fade-up mt-9 flex flex-wrap items-center gap-4" style={{ "--d": "1050ms" } as React.CSSProperties}>
-                <Link href="/register" className="mkt-btn mkt-btn-primary px-7 py-3.5 text-base">
-                  Start free
+                <Link href="/request-demo" className="mkt-btn mkt-btn-primary px-7 py-3.5 text-base">
+                  Request a demo
                   <span aria-hidden>→</span>
                 </Link>
                 <Link href="/r/demo-cafe" className="mkt-btn mkt-btn-ghost px-7 py-3.5 text-base">
@@ -564,7 +564,7 @@ export default async function HomePage() {
                 One plan. Every table.
               </h2>
               <p className="mx-auto mt-4 max-w-md text-ink-soft">
-                No seats, no tiers, no “contact sales”. Less than the cost of
+                No seats, no tiers, no surprises. Less than the cost of
                 one lost regular.
               </p>
             </Reveal>
@@ -581,11 +581,11 @@ export default async function HomePage() {
                     Free while we&apos;re in pilot — founding cafés keep a lifetime
                     discount when pricing turns on.
                   </p>
-                  <Link href="/register" className="mkt-btn mkt-btn-cream mt-8 w-full px-6 py-3.5 text-base">
-                    Start free — 10-minute setup
+                  <Link href="/request-demo" className="mkt-btn mkt-btn-cream mt-8 w-full px-6 py-3.5 text-base">
+                    Request a demo
                   </Link>
                   <p className="f-mono mt-4 text-center text-[10px] uppercase tracking-[0.16em] text-cream/50">
-                    no card · cancel anytime · csv export forever
+                    white-glove setup · cancel anytime · csv export forever
                   </p>
                 </div>
               </Reveal>
@@ -660,14 +660,14 @@ export default async function HomePage() {
                 Your next regular is sitting at table 12 <span className="italic">right now</span>.
               </h2>
               <p className="mx-auto mt-6 max-w-xl text-lg text-cream/80">
-                Put the QR down before their coffee goes cold. Ten minutes to
-                set up, ten seconds for the guest.
+                Put the QR down before their coffee goes cold. We set you up
+                personally — the guest only needs ten seconds.
               </p>
             </Reveal>
             <Reveal delay={150}>
               <div className="mt-10 flex flex-wrap justify-center gap-4">
-                <Link href="/register" className="mkt-btn mkt-btn-ink px-8 py-4 text-base">
-                  Start free →
+                <Link href="/request-demo" className="mkt-btn mkt-btn-ink px-8 py-4 text-base">
+                  Request a demo →
                 </Link>
                 <Link
                   href="/r/demo-cafe"

@@ -11,6 +11,7 @@ import {
 import { SettingsForm } from "./settings-form";
 import { LoyaltyForm } from "./loyalty-form";
 import { NotificationsForm } from "./notifications-form";
+import { ChangePasswordForm } from "@/components/change-password-form";
 
 type SocialLinks = { instagram?: string; facebook?: string; tiktok?: string };
 
@@ -170,6 +171,16 @@ export default async function SettingsPage() {
                 </div>
               </div>
             </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Account"
+            description={`Change the password for ${session.email}.`}
+          />
+          <CardBody>
+            <ChangePasswordForm requireCurrent={true} redirectTo="/settings" />
           </CardBody>
         </Card>
       </div>

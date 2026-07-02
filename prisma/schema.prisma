@@ -64,6 +64,10 @@ model User {
   // Platform operator (systems admin): full access to /admin across all
   // tenants. Independent of the per-business role; businessId may be null.
   isPlatformAdmin Boolean @default(false)
+  // Set when the account was provisioned with a one-time password (invite-only
+  // onboarding): the user must set their own password at first login before
+  // they can use the app.
+  mustChangePassword Boolean @default(false)
   businessId   String?
   business     Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now())
@@ -207,6 +211,26 @@ model CampaignRecipient {
   sentAt     DateTime?
 
   @@index([campaignId, status])
+}
+
+// Inbound "request a demo" leads from the marketing site (the app is
+// invite-only; there is no self-serve registration). The platform admin works
+// them NEW -> CONTACTED -> CONVERTED (business provisioned) or DISMISSED.
+model DemoRequest {
+  id                  String   @id @default(cuid())
+  businessName        String
+  contactName         String
+  email               String
+  phone               String?
+  message             String?
+  status              String   @default("NEW") // NEW | CONTACTED | CONVERTED | DISMISSED
+  adminNotes          String?
+  convertedBusinessId String? // set when the admin registers the business from this request
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 // Audit trail of every outbound email. status DEV_LOGGED means no

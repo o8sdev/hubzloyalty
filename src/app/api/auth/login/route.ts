@@ -46,11 +46,16 @@ export async function POST(req: Request) {
       businessId: user.businessId ?? "",
       role: user.role,
       platformAdmin: user.isPlatformAdmin,
+      mustChangePassword: user.mustChangePassword,
       name: user.name,
       email: user.email,
     });
 
-    return json({ ok: true, admin: user.isPlatformAdmin });
+    return json({
+      ok: true,
+      admin: user.isPlatformAdmin,
+      mustChangePassword: user.mustChangePassword,
+    });
   } catch (err) {
     console.error("login failed", err);
     return serverError("Login failed");

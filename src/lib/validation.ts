@@ -253,14 +253,17 @@ const slugField = z
   .min(2)
   .max(60);
 
+// Invite-only onboarding: the server GENERATES a one-time password for the
+// owner (returned once in the API response); the admin never types one.
 export const adminBusinessCreateSchema = z.object({
   name: z.string().trim().min(2).max(100),
   slug: slugField.optional(),
   owner: z.object({
     name: z.string().trim().min(1).max(100),
     email: z.string().trim().toLowerCase().email(),
-    password: z.string().min(8).max(200),
   }),
+  // When converting a demo request: marked CONVERTED in the same transaction.
+  demoRequestId: z.string().trim().min(1).optional(),
 });
 
 export const adminBusinessUpdateSchema = businessUpdateSchema.extend({
@@ -289,4 +292,48 @@ export const adminUserUpdateSchema = z.object({
 
 export const testEmailSchema = z.object({
   to: z.string().trim().toLowerCase().email(),
+});
+
+// ---------------------------------------------------------------------------
+// Demo requests (invite-only onboarding: the public "register" replacement)
+// ---------------------------------------------------------------------------
+
+export const DEMO_REQUEST_STATUSES = [
+  "NEW",
+  "CONTACTED",
+  "CONVERTED",
+  "DISMISSED",
+] as const;
+
+export const demoRequestCreateSchema = z.object({
+  businessName: z.string().trim().min(2).max(100),
+  contactName: z.string().trim().min(1).max(100),
+  email: z.string().trim().toLowerCase().email(),
+  phone: optionalTrimmed(40),
+  message: optionalTrimmed(1000),
+  // Honeypot (see publicReviewCreateSchema).
+  website: z.string().max(200).optional(),
+});
+
+export const demoRequestUpdateSchema = z
+  .object({
+    // CONVERTED is set exclusively by the business-provisioning transaction
+    // (with convertedBusinessId); it cannot be entered or left via PATCH.
+    status: z.enum(["NEW", "CONTACTED", "DISMISSED"]).optional(),
+    adminNotes: optionalTrimmed(2000),
+  })
+  .refine((v) => v.status !== undefined || v.adminNotes !== undefined, {
+    message: "Nothing to update",
+  });
+
+// ---------------------------------------------------------------------------
+// Account (own password)
+// ---------------------------------------------------------------------------
+
+// currentPassword is optional at the schema level: it is NOT required while
+// the account still has mustChangePassword set (the user just proved the
+// one-time password at login); the API enforces it for voluntary changes.
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(200).optional(),
+  newPassword: z.string().min(8).max(200),
 });

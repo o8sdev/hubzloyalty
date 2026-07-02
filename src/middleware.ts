@@ -31,6 +31,7 @@ export const config = {
     "/loyalty/:path*",
     "/campaigns/:path*",
     "/analytics/:path*",
+    "/change-password",
     // Platform admin. The middleware only checks for a valid JWT; the
     // platformAdmin claim itself is enforced by requirePlatformAdmin in the
     // layout and requireApiPlatformAdmin in /api/admin/* handlers.

@@ -16,6 +16,7 @@ export const MAIL_KINDS = [
   "COMPLAINT_ALERT",
   "WEEKLY_DIGEST",
   "PASSWORD_RESET",
+  "DEMO_REQUEST",
   "TEST",
 ] as const;
 export type MailKind = (typeof MAIL_KINDS)[number];

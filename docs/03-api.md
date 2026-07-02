@@ -25,12 +25,21 @@ Errors: `{ "error": string, "details"?: fieldErrors }` with 400/401/403/404/429/
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| POST | `/api/auth/register` | `{ businessName, name, email, password }` | creates Business + OWNER, sets cookie → `{ ok, businessId, slug }`. Rate limit 5/h/IP |
-| POST | `/api/auth/login` | `{ email, password }` | sets cookie → `{ ok, admin }` (401 on bad credentials, same message for both failure modes; 403 when the business is suspended). Rate limit 20/15min/IP |
+| POST | `/api/auth/register` | — | **410-style lockout: always 403.** The app is invite-only; onboarding goes through demo requests → admin provisioning. |
+| POST | `/api/auth/login` | `{ email, password }` | sets cookie → `{ ok, admin, mustChangePassword }` (401 on bad credentials, same message for both failure modes; 403 when the business is suspended). `mustChangePassword: true` routes the client to `/change-password`. Rate limit 20/15min/IP |
 | POST | `/api/auth/logout` | — | clears cookie |
 | GET | `/api/auth/me` | — | `{ user, business }` |
 | POST | `/api/auth/forgot` | `{ email }` | always `{ ok: true }` (no user enumeration); emails a single-use 1h reset link. Rate limit 5/h/IP |
-| POST | `/api/auth/reset` | `{ token, password }` | verifies + atomically consumes the token, sets the new password. Rate limit 10/h/IP |
+| POST | `/api/auth/reset` | `{ token, password }` | verifies + atomically consumes the token, sets the new password (also clears `mustChangePassword`). Rate limit 10/h/IP |
+| POST | `/api/auth/change-password` | `{ currentPassword?, newPassword }` | any authenticated account (incl. platform admins). `currentPassword` required unless `mustChangePassword` is set (first login with a one-time password); clears the flag and re-issues the session |
+
+## Demo requests (invite-only onboarding)
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| POST | `/api/public/demo-requests` | `{ businessName, contactName, email, phone?, message?, website? (honeypot) }` → stores the lead + emails every platform admin (kind `DEMO_REQUEST`). Rate limit 3/h/IP |
+| GET | `/api/admin/demo-requests` | `?status=NEW\|CONTACTED\|CONVERTED\|DISMISSED\|all&page` → `{ requests, total, newCount }` |
+| PATCH | `/api/admin/demo-requests/:id` | `{ status?, adminNotes? }` — worked by the admin; `CONVERTED` is normally set by the provisioning endpoint, not by hand |
 
 ## Business
 
@@ -71,7 +80,7 @@ Errors: `{ "error": string, "details"?: fieldErrors }` with 400/401/403/404/429/
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| POST | `/api/admin/businesses` | `{ name, slug?, owner: { name, email, password } }` — concierge onboarding, creates tenant + OWNER → 201 |
+| POST | `/api/admin/businesses` | `{ name, slug?, owner: { name, email }, demoRequestId? }` — creates tenant + OWNER with a **server-generated one-time password** (returned once in the 201 response, never stored/logged in plaintext; owner gets `mustChangePassword`). `demoRequestId` marks the source request `CONVERTED` in the same transaction |
 | PATCH | `/api/admin/businesses/:id` | any profile field + `slug`, `suspended: bool` (sets/clears `suspendedAt`), `loyalty` (runs `applyLoyaltyConfig` tier recompute), notification flags |
 | DELETE | `/api/admin/businesses/:id` | deletes tenant (cascades) + its non-admin member accounts |
 | POST | `/api/admin/users` | `{ name, email, password, role, businessId?, isPlatformAdmin? }`; must have a business or the admin flag |
@@ -95,7 +104,7 @@ health (DB latency, env checks, digest run-now).
 All sends go through `src/lib/mail.ts` (Resend REST, no SDK) and are recorded
 in `EmailLog`. Without `RESEND_API_KEY` the message is printed to the console
 and logged with status `DEV_LOGGED` — dev flows (reset links!) stay usable.
-Kinds: `COMPLAINT_ALERT`, `WEEKLY_DIGEST`, `PASSWORD_RESET`, `TEST`.
+Kinds: `COMPLAINT_ALERT`, `WEEKLY_DIGEST`, `PASSWORD_RESET`, `DEMO_REQUEST`, `TEST`.
 
 ## Future modules (contract sketches, not yet implemented)
 

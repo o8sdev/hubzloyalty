@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requirePlatformAdmin } from "@/lib/session";
 import { AdminNav } from "@/components/admin-nav";
 import { LogoutButton } from "@/components/logout-button";
@@ -11,6 +12,8 @@ export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await requirePlatformAdmin();
+  // Same one-time-password enforcement as the tenant app shell.
+  if (session.mustChangePassword) redirect("/change-password");
 
   return (
     <div className="flex min-h-screen bg-slate-100">

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: "◧", exact: true },
+  { href: "/admin/demo-requests", label: "Demo requests", icon: "☏", exact: false },
   { href: "/admin/businesses", label: "Businesses", icon: "⌂", exact: false },
   { href: "/admin/users", label: "Users", icon: "☺", exact: false },
   { href: "/admin/reviews", label: "Reviews", icon: "★", exact: false },

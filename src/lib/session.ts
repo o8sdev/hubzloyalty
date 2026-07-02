@@ -12,6 +12,9 @@ export type Session = {
   role: string; // OWNER | STAFF | ADMIN
   // Platform operator: may access /admin across all tenants.
   platformAdmin: boolean;
+  // Account was provisioned with a one-time password and must set its own
+  // password before using the app ((app) layout redirects to /change-password).
+  mustChangePassword: boolean;
   name: string;
   email: string;
 };
@@ -27,6 +30,7 @@ export async function createSession(session: Session) {
     businessId: session.businessId,
     role: session.role,
     platformAdmin: session.platformAdmin,
+    mustChangePassword: session.mustChangePassword,
     name: session.name,
     email: session.email,
   })
@@ -56,6 +60,7 @@ export async function getSession(): Promise<Session | null> {
       businessId: payload.businessId,
       role: String(payload.role ?? "OWNER"),
       platformAdmin: payload.platformAdmin === true,
+      mustChangePassword: payload.mustChangePassword === true,
       name: String(payload.name ?? ""),
       email: String(payload.email ?? ""),
     };
