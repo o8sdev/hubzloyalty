@@ -34,6 +34,28 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-02 — Session 6 (Windows device): admin access sorted, live-DB state
+- Confirmed the platform-admin account exists and is correctly shaped in the
+  HubzCRM Supabase DB (seeded in Session 3: rhlhabibli@gmail.com,
+  isPlatformAdmin, no business link).
+- **Rotated the admin password** via SQL (bcrypt hash only; the plaintext was
+  handed to the user in chat and should be changed at first login — the
+  Settings → Account form exists once the invite-only code is running).
+  ⚠ Re-running the seed overwrites it from ADMIN_EMAIL/ADMIN_PASSWORD in the
+  Mac's .env.
+- The Claude Supabase connector on the Windows device was signed into the
+  wrong Supabase account (o8s org); user reconnected it to the account owning
+  HubzCRM — DB is now manageable from both devices via MCP.
+- **Live DB does NOT yet have the Session 5 migration**
+  (`20260702150000_invite_only_demo_requests`: DemoRequest table +
+  User.mustChangePassword). A direct apply was declined by the permission
+  layer (schema change beyond the request). It applies with the next
+  `npm run db:migrate` (Mac after `git pull`, or Windows once `.env` is
+  copied). Until then: login works; the demo-request inbox and forced
+  password change need the migrate first.
+- Still pending: `.env` copy to the Windows device (blocks local run +
+  browser verification of the invite-only flow), then the Vercel deploy.
+
 ### 2026-07-02 — Session 5 (Windows device): invite-only onboarding
 - **Registration is gone.** `/register` redirects to the new `/request-demo`
   marketing page (café-print design); `/api/auth/register` always 403s. All
