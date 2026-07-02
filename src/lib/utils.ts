@@ -19,6 +19,22 @@ export function formatDate(date: Date | string | null | undefined): string {
   }).format(d);
 }
 
+/**
+ * For date-only values stored as UTC midnight (birthdays). Formatting those
+ * in server-local time would render a day early anywhere west of UTC.
+ * Not for real timestamps — those should render in local time via formatDate.
+ */
+export function formatDateOnly(date: Date | string | null | undefined): string {
+  if (!date) return "—";
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(d);
+}
+
 export function formatDateTime(date: Date | string | null | undefined): string {
   if (!date) return "—";
   const d = typeof date === "string" ? new Date(date) : date;

@@ -95,8 +95,9 @@ model Visit {
   @@index([customerId])
 }
 
-// One row per QR review-funnel interaction. Ratings >= 4 get routed to
-// Google; ratings <= 3 stay private and appear in the feedback inbox
+// One row per QR review-funnel interaction. The funnel is UNGATED: every
+// rating sees both the public Google option and the private note option.
+// Rows with rating <= 3 additionally surface in the feedback inbox
 // (status NEW until the owner resolves them).
 model Review {
   id            String    @id @default(cuid())

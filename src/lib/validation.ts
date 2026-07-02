@@ -42,13 +42,15 @@ export const loginSchema = z.object({
 // Business profile
 // ---------------------------------------------------------------------------
 
+// "" parses to null (not undefined) so clearing a saved URL in a form
+// actually persists: Prisma ignores undefined but writes null.
 const optionalUrl = z
   .string()
   .trim()
   .url()
   .max(500)
   .optional()
-  .or(z.literal("").transform(() => undefined));
+  .or(z.literal("").transform(() => null));
 
 export const businessUpdateSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
@@ -61,7 +63,7 @@ export const businessUpdateSchema = z.object({
     .toLowerCase()
     .email()
     .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .or(z.literal("").transform(() => null)),
   website: optionalUrl,
   googleReviewUrl: optionalUrl,
   socialLinks: z
@@ -96,8 +98,12 @@ export const customerCreateSchema = z.object({
     .toLowerCase()
     .email()
     .optional()
-    .or(z.literal("").transform(() => undefined)),
-  birthday: z.coerce.date().optional(),
+    .or(z.literal("").transform(() => null)),
+  // "" and null both mean "cleared". Order matters: z.coerce.date() must not
+  // see null (new Date(null) is the 1970 epoch).
+  birthday: z
+    .union([z.literal("").transform(() => null), z.null(), z.coerce.date()])
+    .optional(),
   marketingConsent: z.boolean().optional().default(false),
   tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
   notes: optionalTrimmed(2000),

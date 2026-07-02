@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { ZodType } from "zod";
+import type { ZodType, ZodTypeDef } from "zod";
 import { getSession, type Session } from "@/lib/session";
 
 export function json(data: unknown, init?: ResponseInit) {
@@ -32,7 +32,9 @@ export function serverError(message = "Something went wrong") {
  */
 export async function parseBody<T>(
   req: Request,
-  schema: ZodType<T>
+  // Input type is decoupled from output so schemas with transforms
+  // (e.g. "" -> null) are accepted.
+  schema: ZodType<T, ZodTypeDef, unknown>
 ): Promise<{ data: T; error?: undefined } | { data?: undefined; error: NextResponse }> {
   let body: unknown;
   try {
