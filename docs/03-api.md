@@ -33,6 +33,7 @@ seam is `POST /api/auth/forgot` + Resend in Phase 2.
 | GET | `/api/business` | profile, `socialLinks` parsed to object |
 | PATCH | `/api/business` | `businessUpdateSchema`; OWNER/ADMIN only (STAFF 403) |
 | GET | `/api/business/qr` | PNG QR of `{APP_URL}/r/{slug}`; `?download=1` → attachment |
+| PATCH | `/api/business/loyalty` | `{ pointsPerVisit, silverThreshold, goldThreshold, vipThreshold }` (Silver < Gold < VIP enforced); OWNER/ADMIN only; transactionally recomputes every customer's tier |
 
 ## Customers
 

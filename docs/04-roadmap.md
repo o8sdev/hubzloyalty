@@ -28,8 +28,10 @@ reviews and intercepted complaints this month?" from the dashboard.
 ## Phase 3 — Loyalty (trigger: ≥2 pilot owners ask unprompted)
 
 Rewards catalog, redemption flow with staff-verifiable codes, wallet view on
-the customer profile, per-business tier thresholds. Points remain visit-based;
-never points-for-reviews.
+the customer profile. Points remain visit-based; never points-for-reviews.
+(Per-business tier thresholds and points-per-visit were pulled forward into
+Phase 1 — configurable in Settings → Loyalty program. Reward definitions and
+redemption rules will be per-business the same way.)
 
 ## Phase 4 — Campaign automation (trigger: >50 concierge msgs/week with >5% redemption)
 

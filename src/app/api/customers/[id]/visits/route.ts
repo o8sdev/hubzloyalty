@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { json, notFound, parseBody, requireApiSession, serverError } from "@/lib/http";
-import { POINTS_PER_VISIT, tierForVisits, visitCreateSchema } from "@/lib/validation";
+import { tierForVisits, visitCreateSchema } from "@/lib/validation";
 
 export async function POST(
   req: Request,
@@ -17,11 +17,23 @@ export async function POST(
 
   try {
     // Multi-tenant isolation: verify the customer belongs to this business.
-    const customer = await db.customer.findFirst({
-      where: { id, businessId },
-      select: { id: true },
-    });
-    if (!customer) return notFound("Customer not found");
+    // Loyalty economics (points per visit, tier thresholds) are per-business.
+    const [customer, loyalty] = await Promise.all([
+      db.customer.findFirst({
+        where: { id, businessId },
+        select: { id: true },
+      }),
+      db.business.findUnique({
+        where: { id: businessId },
+        select: {
+          pointsPerVisit: true,
+          silverThreshold: true,
+          goldThreshold: true,
+          vipThreshold: true,
+        },
+      }),
+    ]);
+    if (!customer || !loyalty) return notFound("Customer not found");
 
     // Tier derives from the post-increment count returned by the update, so
     // concurrent visit logs can't leave tier inconsistent with totalVisits.
@@ -31,7 +43,7 @@ export async function POST(
           businessId,
           customerId: customer.id,
           amountCents,
-          pointsEarned: POINTS_PER_VISIT,
+          pointsEarned: loyalty.pointsPerVisit,
           note,
         },
       });
@@ -40,13 +52,13 @@ export async function POST(
         data: {
           totalVisits: { increment: 1 },
           totalSpendCents: { increment: amountCents },
-          loyaltyPoints: { increment: POINTS_PER_VISIT },
+          loyaltyPoints: { increment: loyalty.pointsPerVisit },
           lastVisitAt: new Date(),
         },
       });
       return tx.customer.update({
         where: { id: customer.id },
-        data: { tier: tierForVisits(updated.totalVisits) },
+        data: { tier: tierForVisits(updated.totalVisits, loyalty) },
       });
     });
 

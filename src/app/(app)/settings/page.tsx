@@ -9,6 +9,7 @@ import {
   PageHeader,
 } from "@/components/ui";
 import { SettingsForm } from "./settings-form";
+import { LoyaltyForm } from "./loyalty-form";
 
 type SocialLinks = { instagram?: string; facebook?: string; tiktok?: string };
 
@@ -70,6 +71,24 @@ export default async function SettingsPage() {
                 facebook: social.facebook ?? "",
                 tiktok: social.tiktok ?? "",
                 timezone: business.timezone,
+              }}
+            />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Loyalty program"
+            description="How your customers earn points and climb tiers. Every business sets its own rules."
+          />
+          <CardBody>
+            <LoyaltyForm
+              canEdit={canEdit}
+              initial={{
+                pointsPerVisit: business.pointsPerVisit,
+                silverThreshold: business.silverThreshold,
+                goldThreshold: business.goldThreshold,
+                vipThreshold: business.vipThreshold,
               }}
             />
           </CardBody>

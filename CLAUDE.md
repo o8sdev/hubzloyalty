@@ -25,6 +25,17 @@ SQLite dev / Postgres prod, jose JWT cookie sessions.
 - UI primitives come from `src/components/ui.tsx`; brand palette classes
   `bg-brand-700` etc. (defined in `src/app/globals.css` @theme).
 - Next 15: `params`/`searchParams` are Promises — await them.
+- **Loyalty economics are per-business** (Business.pointsPerVisit /
+  silverThreshold / goldThreshold / vipThreshold). Never hardcode tier math:
+  load the business config and pass it to `tierForVisits(visits, config)`.
+  Threshold changes go through PATCH /api/business/loyalty (bulk tier
+  recompute).
+
+## Session hygiene
+Update **CATCHUP.md** (repo root) at the end of every working session: date,
+what changed, why, and anything in-flight — the user reads it on other
+devices to catch up. Push to GitHub (origin = o8sdev/hubzloyalty) when the
+user asks for changes to be committed.
 
 ## Roadmap discipline
 Phases and their build triggers live in docs/04-roadmap.md — check the

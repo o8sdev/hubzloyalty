@@ -1,10 +1,6 @@
 import { db } from "@/lib/db";
 import { badRequest, json, notFound, parseBody, serverError } from "@/lib/http";
-import {
-  POINTS_PER_VISIT,
-  publicReviewDetailsSchema,
-  tierForVisits,
-} from "@/lib/validation";
+import { publicReviewDetailsSchema, tierForVisits } from "@/lib/validation";
 
 /**
  * PUBLIC endpoint — no auth. Steps two and three of the QR funnel: the guest
@@ -43,6 +39,18 @@ export async function PATCH(
 
     if (data.customer) {
       const c = data.customer;
+
+      // Loyalty economics are configured per business.
+      const loyalty = await db.business.findUnique({
+        where: { id: review.businessId },
+        select: {
+          pointsPerVisit: true,
+          silverThreshold: true,
+          goldThreshold: true,
+          vipThreshold: true,
+        },
+      });
+      if (!loyalty) return notFound("Business not found");
 
       await db.$transaction(async (tx) => {
         // Match an existing customer within the SAME business — phone first,
@@ -92,7 +100,7 @@ export async function PATCH(
               businessId: review.businessId,
               customerId: customer.id,
               amountCents: 0,
-              pointsEarned: POINTS_PER_VISIT,
+              pointsEarned: loyalty.pointsPerVisit,
               note: "QR check-in",
             },
           });
@@ -102,13 +110,13 @@ export async function PATCH(
             where: { id: customer.id },
             data: {
               totalVisits: { increment: 1 },
-              loyaltyPoints: { increment: POINTS_PER_VISIT },
+              loyaltyPoints: { increment: loyalty.pointsPerVisit },
               lastVisitAt: new Date(),
             },
           });
           await tx.customer.update({
             where: { id: customer.id },
-            data: { tier: tierForVisits(updated.totalVisits) },
+            data: { tier: tierForVisits(updated.totalVisits, loyalty) },
           });
         }
 

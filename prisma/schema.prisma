@@ -26,6 +26,15 @@ model Business {
   googleReviewUrl String?
   socialLinks     String? // JSON string: { instagram?, facebook?, tiktok? }
   timezone        String   @default("UTC")
+
+  // Per-business loyalty program configuration. Thresholds are the visit
+  // counts at which a customer reaches each tier (BRONZE is below Silver).
+  // Changing these recalculates every customer's stored tier (see
+  // /api/business/loyalty).
+  pointsPerVisit  Int @default(10)
+  silverThreshold Int @default(5)
+  goldThreshold   Int @default(10)
+  vipThreshold    Int @default(20)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

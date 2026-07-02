@@ -12,15 +12,53 @@ export const CUSTOMER_SOURCES = ["MANUAL", "QR", "IMPORT"] as const;
 
 export type Tier = (typeof TIERS)[number];
 
-/** Loyalty economics for the MVP: visits drive everything (no POS = no spend data). */
-export const POINTS_PER_VISIT = 10;
+/**
+ * Loyalty economics: visits drive everything (no POS = no spend data).
+ * Each business configures its own points-per-visit and tier thresholds
+ * (columns on Business); these are the defaults for new businesses and for
+ * callers that don't pass a config (e.g. the seed script).
+ */
+export type LoyaltyConfig = {
+  pointsPerVisit: number;
+  silverThreshold: number;
+  goldThreshold: number;
+  vipThreshold: number;
+};
 
-export function tierForVisits(totalVisits: number): Tier {
-  if (totalVisits >= 20) return "VIP";
-  if (totalVisits >= 10) return "GOLD";
-  if (totalVisits >= 5) return "SILVER";
+export const DEFAULT_LOYALTY_CONFIG: LoyaltyConfig = {
+  pointsPerVisit: 10,
+  silverThreshold: 5,
+  goldThreshold: 10,
+  vipThreshold: 20,
+};
+
+/** @deprecated prefer business.pointsPerVisit; kept for the seed defaults. */
+export const POINTS_PER_VISIT = DEFAULT_LOYALTY_CONFIG.pointsPerVisit;
+
+export function tierForVisits(
+  totalVisits: number,
+  config: Pick<
+    LoyaltyConfig,
+    "silverThreshold" | "goldThreshold" | "vipThreshold"
+  > = DEFAULT_LOYALTY_CONFIG
+): Tier {
+  if (totalVisits >= config.vipThreshold) return "VIP";
+  if (totalVisits >= config.goldThreshold) return "GOLD";
+  if (totalVisits >= config.silverThreshold) return "SILVER";
   return "BRONZE";
 }
+
+export const loyaltySettingsSchema = z
+  .object({
+    pointsPerVisit: z.number().int().min(0).max(10_000),
+    silverThreshold: z.number().int().min(1).max(100_000),
+    goldThreshold: z.number().int().min(1).max(100_000),
+    vipThreshold: z.number().int().min(1).max(100_000),
+  })
+  .refine(
+    (v) => v.silverThreshold < v.goldThreshold && v.goldThreshold < v.vipThreshold,
+    { message: "Thresholds must increase: Silver < Gold < VIP" }
+  );
 
 // ---------------------------------------------------------------------------
 // Auth

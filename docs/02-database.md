@@ -111,10 +111,12 @@ erDiagram
   a guest taps a star; `comment`, `clickedGoogle`, and `customerId` are filled
   in by later funnel steps. Rows with `rating <= 3 AND status = 'NEW'` form
   the "needs attention" inbox. No separate Complaint table.
-- **Loyalty math lives in code, not the DB** (`tierForVisits`,
-  `POINTS_PER_VISIT` in `src/lib/validation.ts`): visits ≥20 → VIP, ≥10 →
-  GOLD, ≥5 → SILVER, else BRONZE; 10 points per visit. Thresholds become
-  per-business columns when a pilot asks to change them (they will).
+- **Loyalty economics are per-business columns** on `Business`
+  (`pointsPerVisit`, `silverThreshold`, `goldThreshold`, `vipThreshold`;
+  defaults 10 / 5 / 10 / 20). `tierForVisits(visits, config)` in
+  `src/lib/validation.ts` applies them. Tiers are still *stored* on
+  `Customer` so lists/filters stay cheap; changing thresholds triggers a
+  ranged bulk recompute of all customer tiers (`PATCH /api/business/loyalty`).
 - **Consent is a boolean now, an audit log later.** Before Phase 4 messaging
   ships, add `ConsentEvent(customerId, channel, action, wording, ip,
   createdAt)` — required for TCPA/GDPR defensibility. Documented so we don't
