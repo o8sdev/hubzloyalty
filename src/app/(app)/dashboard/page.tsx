@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { RedeemWidget } from "./redeem-widget";
 import {
   Badge,
   Card,
@@ -20,7 +21,12 @@ export default async function DashboardPage() {
 
   const business = await db.business.findUnique({
     where: { id: businessId },
-    select: { name: true, slug: true, googleReviewUrl: true },
+    select: {
+      name: true,
+      slug: true,
+      googleReviewUrl: true,
+      welcomeRewardEnabled: true,
+    },
   });
 
   // Rolling 30-day window for the headline stats.
@@ -35,6 +41,8 @@ export default async function DashboardPage() {
     needsAttentionCount,
     attentionReviews,
     recentCustomers,
+    pendingClaims,
+    redeemedClaims30d,
   ] = await Promise.all([
     db.customer.count({ where: { businessId } }),
     db.customer.count({ where: { businessId, createdAt: { gte: since } } }),
@@ -69,6 +77,16 @@ export default async function DashboardPage() {
         source: true,
         createdAt: true,
       },
+    }),
+    db.rewardClaim.count({
+      where: {
+        businessId,
+        status: "PENDING",
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+    }),
+    db.rewardClaim.count({
+      where: { businessId, status: "REDEEMED", redeemedAt: { gte: since } },
     }),
   ]);
 
@@ -141,6 +159,18 @@ export default async function DashboardPage() {
           hint="Low ratings awaiting a response"
         />
       </div>
+
+      {business?.welcomeRewardEnabled ? (
+        <Card className="mt-6">
+          <CardHeader
+            title="Redeem a welcome reward"
+            description={`Guest shows a code, you check it, hand over the gift. ${pendingClaims} waiting · ${redeemedClaims30d} redeemed in the last 30 days.`}
+          />
+          <CardBody>
+            <RedeemWidget />
+          </CardBody>
+        </Card>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>

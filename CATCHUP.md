@@ -34,7 +34,37 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
-### 2026-07-03 — Session 8e (Mac): auth pages redesigned + login busy states
+### 2026-07-03 — Session 9 (Mac): welcome reward for first-time scanners
+- Planned first (plan mode, user approved), then built: businesses can give
+  first-time funnel completers a **one-time gift code** to claim at the
+  counter. COMPLIANCE FRAME everywhere: it's a gift for JOINING THE LIST —
+  identical at every rating, never for the review (Google/FTC).
+- **Schema**: Business.welcomeReward{Enabled,Text,ExpiryDays} + new
+  RewardClaim table (kind WELCOME, unique 6-char bearer code, frozen
+  rewardText, PENDING/REDEEMED + derived expiry, one per customer enforced
+  by @@unique). RLS on. Migration `welcome_reward_claims` applied live.
+- **First-time detection** = the funnel's existing create-vs-match branch:
+  grant only when the Customer row is CREATED (dedupe by phone/email per
+  business falls out for free). Grant rides the same transaction; code
+  collisions retry once.
+- **Guest UX**: reward ticket on the done screen (code XXX-XXX, expiry,
+  "saved on this device"); localStorage memory per business slug →
+  repeat scans get prefilled one-tap "Check in", "Welcome back — visit
+  recorded", and the unredeemed code re-shown; a public status endpoint
+  (bearer = the code) lets the device drop redeemed/expired codes. Server
+  never discloses whether contact matched (privacy invariant intact).
+- **Owner controls**: Settings → "Welcome reward" card (toggle/text/expiry
+  days; enabling requires text — validated both sides). Dashboard →
+  "Redeem a welcome reward" widget (only when enabled): staff types code →
+  sees gift + guest name + expiry → "Hand it over — mark redeemed" →
+  atomic redeem logged with who/when; pending + redeemed-30d counters in
+  the header. Customer detail shows the claim + status badge.
+- **Verified end-to-end in browser + DB**: enable/guard 400, first scan
+  grants (ticket UI), repeat scan same phone → no grant + visit++ (1 claim,
+  2 visits), device welcome-back flow, widget lookup (messy input
+  normalized) → redeem → double-redeem rejected → public status flips →
+  device auto-clears code but keeps contact, disabled toggle → no grant,
+  bogus code 404. Build 47 routes.
 - All entry pages (login, forgot/reset password, /change-password) now share
   the café-print design via `AuthShell` + `AuthSubmitButton` in
   `src/components/marketing/auth.tsx` (paper/ember/Fraunces, coffee rings,

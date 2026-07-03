@@ -1,7 +1,9 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { badRequest, json, notFound, parseBody, serverError } from "@/lib/http";
 import { publicReviewDetailsSchema } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
+import { generateRewardCode } from "@/lib/onetime";
 
 /**
  * PUBLIC endpoint — no auth. Steps two and three of the QR funnel: the guest
@@ -48,22 +50,40 @@ export async function PATCH(
     if (data.clickedGoogle !== undefined)
       reviewUpdate.clickedGoogle = data.clickedGoogle;
 
+    // Granted welcome reward (first-time completers only) — surfaced to the
+    // guest in the response as their counter-proof.
+    let welcomeReward: {
+      code: string;
+      rewardText: string;
+      expiresAt: string | null;
+    } | null = null;
+
     if (data.customer) {
       const c = data.customer;
 
-      // Loyalty economics are configured per business.
-      const loyalty = await db.business.findUnique({
+      // Loyalty economics + welcome-reward config, per business (one read).
+      const config = await db.business.findUnique({
         where: { id: review.businessId },
         select: {
           pointsPerVisit: true,
           silverThreshold: true,
           goldThreshold: true,
           vipThreshold: true,
+          welcomeRewardEnabled: true,
+          welcomeRewardText: true,
+          welcomeRewardExpiryDays: true,
         },
       });
-      if (!loyalty) return notFound("Business not found");
+      if (!config) return notFound("Business not found");
+      const loyalty = config;
 
-      await db.$transaction(
+      // Bearer code pre-generated outside the transaction; on the (astronomically
+      // rare) unique collision the whole transaction retries once with a new code.
+      let rewardCode = generateRewardCode();
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await db.$transaction(
         async (tx) => {
           // Match an existing customer within the SAME business — phone
           // first, then email — so repeat guests don't create duplicate rows.
@@ -99,6 +119,32 @@ export async function PATCH(
                 tags: review.rating <= 3 ? "callback-requested" : "",
               },
             });
+
+            // Welcome reward: granted ONLY when the funnel creates the row
+            // (first-time completer) and the business enabled it.
+            // COMPLIANCE: this is a gift for joining the guest list — it is
+            // granted at every rating identically and never references the
+            // review; points-for-reviews stays forbidden.
+            if (config.welcomeRewardEnabled && config.welcomeRewardText) {
+              const expiresAt = new Date(
+                Date.now() + config.welcomeRewardExpiryDays * 24 * 60 * 60 * 1000
+              );
+              const claim = await tx.rewardClaim.create({
+                data: {
+                  businessId: review.businessId,
+                  customerId: customer.id,
+                  kind: "WELCOME",
+                  code: rewardCode,
+                  rewardText: config.welcomeRewardText,
+                  expiresAt,
+                },
+              });
+              welcomeReward = {
+                code: claim.code,
+                rewardText: claim.rewardText,
+                expiresAt: claim.expiresAt?.toISOString() ?? null,
+              };
+            }
           }
 
           // Atomically claim the review→customer link (compare-and-set on
@@ -146,10 +192,26 @@ export async function PATCH(
           }
         },
         // Prisma's 5s default assumes a nearby DB. This transaction is up to
-        // ~7 round trips; against a distant region that exceeds 5s and dies
+        // ~8 round trips; against a distant region that exceeds 5s and dies
         // with P2028 mid-flight ("Could not save your details" for guests).
         { maxWait: 10_000, timeout: 30_000 }
       );
+          break; // transaction committed
+        } catch (txErr) {
+          // Retry the whole (rolled-back) transaction ONCE with a fresh code
+          // if the reward code collided; anything else propagates.
+          const isCodeCollision =
+            txErr instanceof Prisma.PrismaClientKnownRequestError &&
+            txErr.code === "P2002" &&
+            JSON.stringify(txErr.meta ?? {}).includes("code");
+          if (isCodeCollision && attempt === 0) {
+            rewardCode = generateRewardCode();
+            welcomeReward = null;
+            continue;
+          }
+          throw txErr;
+        }
+      }
     } else if (Object.keys(reviewUpdate).length > 0) {
       await db.review.update({
         where: { id: review.id },
@@ -157,7 +219,7 @@ export async function PATCH(
       });
     }
 
-    return json({ ok: true });
+    return json({ ok: true, ...(welcomeReward ? { welcomeReward } : {}) });
   } catch (err) {
     console.error("public review update failed", err);
     return serverError();

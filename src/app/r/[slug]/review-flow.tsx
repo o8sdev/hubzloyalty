@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Card,
@@ -17,6 +17,52 @@ const STAR_PATH =
   "M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5z";
 
 type Step = "rate" | "actions" | "capture" | "done";
+
+type WelcomeReward = {
+  code: string;
+  rewardText: string;
+  expiresAt: string | null;
+};
+
+/**
+ * Device-local memory of a completed funnel at this business. Enables
+ * one-tap repeat check-ins and resurfaces an unredeemed reward code —
+ * without the server ever disclosing whether contact details matched.
+ */
+type GuestMemory = {
+  firstName?: string;
+  phone?: string;
+  email?: string;
+  code?: string;
+  rewardText?: string;
+  expiresAt?: string;
+};
+
+function memoryKey(slug: string) {
+  return `lcrm:guest:${slug}`;
+}
+
+function readGuestMemory(slug: string): GuestMemory | null {
+  try {
+    const raw = window.localStorage.getItem(memoryKey(slug));
+    return raw ? (JSON.parse(raw) as GuestMemory) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeGuestMemory(slug: string, memory: GuestMemory) {
+  try {
+    window.localStorage.setItem(memoryKey(slug), JSON.stringify(memory));
+  } catch {
+    // Private browsing / storage full — memory is a nicety, never a blocker.
+  }
+}
+
+/** "K7M2FX" → "K7M-2FX" for display. */
+function fmtCode(code: string) {
+  return code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code;
+}
 
 /**
  * The public QR review funnel.
@@ -61,21 +107,66 @@ export function ReviewFlow({
   const [savingContact, setSavingContact] = useState(false);
   const [contactSaved, setContactSaved] = useState(false);
 
+  // Welcome reward granted on THIS visit (first-time completers only).
+  const [welcomeReward, setWelcomeReward] = useState<WelcomeReward | null>(null);
+  // Device memory: this phone completed the funnel here before. Purely
+  // device-local — the server never discloses whether contact info matched.
+  const [remembered, setRemembered] = useState<GuestMemory | null>(null);
+
   // Bot honeypot: hidden field humans never see or fill. Sent with every
   // request; the API silently drops submissions that carry a value.
   const [website, setWebsite] = useState("");
 
-  async function patchReview(body: Record<string, unknown>): Promise<boolean> {
-    if (!reviewId) return false;
+  // Restore device memory: prefill the form for a one-tap check-in, and
+  // resurface an ungredeemed reward code. A quick status check clears codes
+  // that were redeemed or expired since.
+  useEffect(() => {
+    const stored = readGuestMemory(slug);
+    if (!stored) return;
+    setRemembered(stored);
+    if (stored.firstName) setFirstName(stored.firstName);
+    if (stored.phone) setPhone(stored.phone);
+    if (stored.email) setEmail(stored.email);
+
+    if (stored.code) {
+      const expired = stored.expiresAt
+        ? new Date(stored.expiresAt).getTime() < Date.now()
+        : false;
+      if (expired) {
+        const cleaned = { ...stored, code: undefined, rewardText: undefined, expiresAt: undefined };
+        writeGuestMemory(slug, cleaned);
+        setRemembered(cleaned);
+        return;
+      }
+      fetch(`/api/public/claims/${stored.code}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { status?: string } | null) => {
+          if (data && data.status !== "PENDING") {
+            const cleaned = { ...stored, code: undefined, rewardText: undefined, expiresAt: undefined };
+            writeGuestMemory(slug, cleaned);
+            setRemembered(cleaned);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [slug]);
+
+  async function patchReview(
+    body: Record<string, unknown>
+  ): Promise<{ ok: boolean; welcomeReward?: WelcomeReward }> {
+    if (!reviewId) return { ok: false };
     try {
       const res = await fetch(`/api/public/reviews/${reviewId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...body, website: website || undefined }),
       });
-      return res.ok;
+      const data = (await res.json().catch(() => ({}))) as {
+        welcomeReward?: WelcomeReward;
+      };
+      return { ok: res.ok, welcomeReward: data.welcomeReward };
     } catch {
-      return false;
+      return { ok: false };
     }
   }
 
@@ -118,7 +209,7 @@ export function ReviewFlow({
     if (!comment.trim() || sendingNote) return;
     setSendingNote(true);
     setError(null);
-    const ok = await patchReview({ comment: comment.trim() });
+    const { ok } = await patchReview({ comment: comment.trim() });
     setSendingNote(false);
     if (!ok) {
       setError("Could not send your note — please try again.");
@@ -140,7 +231,7 @@ export function ReviewFlow({
     if (savingContact) return;
     setSavingContact(true);
     setError(null);
-    const ok = await patchReview({
+    const result = await patchReview({
       customer: {
         firstName: firstName.trim(),
         phone: phone.trim() || undefined,
@@ -150,10 +241,24 @@ export function ReviewFlow({
       },
     });
     setSavingContact(false);
-    if (!ok) {
+    if (!result.ok) {
       setError("Could not save your details — please try again.");
       return;
     }
+    if (result.welcomeReward) setWelcomeReward(result.welcomeReward);
+
+    // Remember this guest on-device: prefills the next check-in and keeps
+    // their reward code recoverable until it's redeemed or expires.
+    const previous = readGuestMemory(slug);
+    writeGuestMemory(slug, {
+      firstName: firstName.trim() || previous?.firstName,
+      phone: phone.trim() || previous?.phone,
+      email: email.trim() || previous?.email,
+      code: result.welcomeReward?.code ?? previous?.code,
+      rewardText: result.welcomeReward?.rewardText ?? previous?.rewardText,
+      expiresAt: result.welcomeReward?.expiresAt ?? previous?.expiresAt,
+    });
+
     setContactSaved(true);
     setStep("done");
   }
@@ -163,6 +268,8 @@ export function ReviewFlow({
   // "loyalty list", but many WILL leave a number so the owner can fix it —
   // and a same-day callback is the complaint the internet never sees.
   const complaint = rating > 0 && rating <= 3;
+  // This device completed the funnel here before → one-tap check-in UX.
+  const returning = Boolean(remembered && (remembered.phone || remembered.email));
 
   // Both blocks below are ALWAYS rendered for every rating (no gating);
   // only order and visual emphasis change.
@@ -296,12 +403,16 @@ export function ReviewFlow({
             <h2 className="text-base font-semibold text-slate-900">
               {complaint
                 ? "Want us to make this right?"
-                : `Join ${businessName}'s loyalty list`}
+                : returning
+                  ? "Welcome back — check in?"
+                  : `Join ${businessName}'s loyalty list`}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {complaint
                 ? "Leave your name and number — the owner reads every note and can call you back personally, usually the same day."
-                : "Get a birthday treat and the occasional regulars-only offer."}
+                : returning
+                  ? "One tap and this visit lands on your loyalty card."
+                  : "Get a birthday treat and the occasional regulars-only offer."}
             </p>
             <form onSubmit={saveContact} className="mt-4 space-y-3">
               <div>
@@ -366,32 +477,38 @@ export function ReviewFlow({
               {/* The callback is a service follow-up, not marketing — so for
                   complaints the opt-in is genuinely optional. Joining the
                   loyalty list IS the marketing relationship, so there it
-                  stays required. Consent is never pre-checked. */}
-              <label className="flex items-start gap-2 text-xs text-slate-500">
-                <input
-                  type="checkbox"
-                  required={!complaint}
-                  checked={consent}
-                  onChange={(e) => setConsent(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300"
-                />
-                <span>
-                  I agree to receive occasional marketing messages from{" "}
-                  {businessName}. Reply STOP anytime.
-                  {complaint ? (
-                    <span className="text-slate-400">
-                      {" "}
-                      (Optional — the callback happens either way.)
-                    </span>
-                  ) : null}
-                </span>
-              </label>
+                  stays required. Consent is never pre-checked. Returning
+                  guests already answered it on their first visit (the server
+                  never mutates matched customers from this endpoint). */}
+              {returning ? null : (
+                <label className="flex items-start gap-2 text-xs text-slate-500">
+                  <input
+                    type="checkbox"
+                    required={!complaint}
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>
+                    I agree to receive occasional marketing messages from{" "}
+                    {businessName}. Reply STOP anytime.
+                    {complaint ? (
+                      <span className="text-slate-400">
+                        {" "}
+                        (Optional — the callback happens either way.)
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+              )}
               <Button type="submit" className="w-full" disabled={savingContact}>
                 {savingContact
                   ? "Saving…"
                   : complaint
                     ? "Request a callback"
-                    : "Join the list"}
+                    : returning
+                      ? "Check in"
+                      : "Join the list"}
               </Button>
               <Button
                 type="button"
@@ -424,8 +541,52 @@ export function ReviewFlow({
           <p className="text-lg font-semibold text-slate-900">
             {complaint && contactSaved
               ? `Thank you — ${businessName} will reach out to make this right.`
-              : "You're all set — see you soon!"}
+              : returning && contactSaved
+                ? "Welcome back — visit recorded!"
+                : "You're all set — see you soon!"}
           </p>
+
+          {/* Welcome reward ticket — granted for JOINING THE LIST (first
+              completion), identical at every rating; never for the review. */}
+          {welcomeReward ? (
+            <div className="w-full max-w-xs rounded-2xl border-2 border-dashed border-amber-400 bg-amber-50 px-5 py-5 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700">
+                🎁 Welcome gift for joining
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-900">
+                {welcomeReward.rewardText}
+              </p>
+              <p className="mt-3 font-mono text-3xl font-bold tracking-[0.12em] text-slate-900">
+                {fmtCode(welcomeReward.code)}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                Show this code at the counter to claim.
+                {welcomeReward.expiresAt
+                  ? ` Valid until ${new Date(welcomeReward.expiresAt).toLocaleDateString()}.`
+                  : ""}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                We&apos;ve saved it on this device too.
+              </p>
+            </div>
+          ) : remembered?.code ? (
+            <div className="w-full max-w-xs rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 px-5 py-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700">
+                Your welcome gift is still waiting
+              </p>
+              <p className="mt-1 text-sm text-slate-700">{remembered.rewardText}</p>
+              <p className="mt-2 font-mono text-2xl font-bold tracking-[0.12em] text-slate-900">
+                {fmtCode(remembered.code)}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Show it at the counter to claim
+                {remembered.expiresAt
+                  ? ` — valid until ${new Date(remembered.expiresAt).toLocaleDateString()}`
+                  : ""}
+                .
+              </p>
+            </div>
+          ) : null}
           {/* Rating-neutral by design: re-offering the Google link only to
               high raters would be review gating. */}
           {googleUrl && !googleClicked ? (

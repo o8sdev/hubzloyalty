@@ -40,6 +40,13 @@ model Business {
   notifyComplaints   Boolean @default(true)
   notifyWeeklyDigest Boolean @default(true)
 
+  // Welcome reward for first-time funnel completers. COMPLIANCE: granted for
+  // joining the guest list (form completion), never for the review/rating —
+  // copy must never condition the gift on a review (Google policy, FTC 465).
+  welcomeRewardEnabled    Boolean @default(false)
+  welcomeRewardText       String? // e.g. "A free espresso — on us"
+  welcomeRewardExpiryDays Int     @default(14)
+
   // Set by a platform admin to suspend the business: blocks member logins
   // and returns 404 on the public funnel. Null = active.
   suspendedAt DateTime?
@@ -47,12 +54,13 @@ model Business {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  users     User[]
-  customers Customer[]
-  visits    Visit[]
-  reviews   Review[]
-  rewards   Reward[]
-  campaigns Campaign[]
+  users        User[]
+  customers    Customer[]
+  visits       Visit[]
+  reviews      Review[]
+  rewards      Reward[]
+  campaigns    Campaign[]
+  rewardClaims RewardClaim[]
 }
 
 // Domain profile for an authenticated person. Identity (credentials, email
@@ -103,9 +111,10 @@ model Customer {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  visits      Visit[]
-  reviews     Review[]
-  redemptions Redemption[]
+  visits       Visit[]
+  reviews      Review[]
+  redemptions  Redemption[]
+  rewardClaims RewardClaim[]
 
   @@index([businessId, lastVisitAt])
   @@index([businessId, phone])
@@ -240,6 +249,31 @@ model EmailLog {
   @@index([businessId, createdAt])
   @@index([kind, createdAt])
   @@index([createdAt])
+}
+
+// A granted, code-bearing reward (currently only kind WELCOME: the one-time
+// gift for first-time funnel completers). Distinct from the Phase 3
+// Reward/Redemption catalog: a claim is granted (no points cost), carries a
+// bearer code shown at the counter, and expires. Expiry is DERIVED at read
+// time from expiresAt — no cron flips statuses.
+model RewardClaim {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  kind       String   @default("WELCOME")
+  code       String   @unique // short unambiguous bearer code, stored normalized (no dashes)
+  rewardText String // frozen at grant time — owner may change the config later
+  status     String   @default("PENDING") // PENDING | REDEEMED
+  expiresAt  DateTime?
+  redeemedAt DateTime?
+  redeemedByUserId String? // which staff/owner account confirmed it
+  createdAt  DateTime @default(now())
+
+  // One welcome reward per customer, guaranteed at the schema level.
+  @@unique([customerId, kind])
+  @@index([businessId, status, createdAt])
 }
 
 // Fixed-window rate limiting for public endpoints. One row per (route, ip)

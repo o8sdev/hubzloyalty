@@ -100,6 +100,29 @@ Admin UI lives at `/admin` (dark shell): overview, businesses (CRUD +
 suspend/delete), users, cross-tenant review browser, email log, system
 health (DB latency, env checks, digest run-now).
 
+## Welcome rewards (first-time scanner incentive)
+
+COMPLIANCE FRAME: the reward is a **welcome gift for joining the guest
+list** — granted identically at every rating when the funnel CREATES the
+customer row, never conditioned on the rating or a Google review, and never
+awarding loyalty points. Config lives on Business
+(`welcomeRewardEnabled/Text/ExpiryDays`, Settings → Welcome reward); grants
+are `RewardClaim` rows (kind WELCOME, one per customer, schema-enforced)
+carrying a 6-char unambiguous bearer code with expiry.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| — | (grant) | happens inside `PATCH /api/public/reviews/:id` when a NEW customer is created and the business enabled the reward; response gains `welcomeReward: { code, rewardText, expiresAt }` |
+| GET | `/api/public/claims/:code` | PUBLIC, rate-limited 30/h/IP. `{ status: PENDING\|REDEEMED\|EXPIRED }` and nothing else — the code is the bearer secret; used by the guest's device to stop re-showing dead codes |
+| GET | `/api/rewards/claims/:code` | staff lookup (session, business-scoped): reward text, status, guest name, expiry. Input normalized (case/dashes) |
+| POST | `/api/rewards/claims/:code/redeem` | atomic PENDING→REDEEMED compare-and-set (records who/when); "Already redeemed" / "expired" errors otherwise |
+
+Repeat visits: same contact info → the funnel matches the existing customer
+(visit/points/tier accrue, review links) and grants nothing; the guest's
+device remembers them locally (localStorage per slug) for one-tap check-ins
+and re-shows an unredeemed code. The server never discloses whether contact
+info matched.
+
 ## Cron
 
 | Method | Path | Notes |

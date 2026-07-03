@@ -20,3 +20,23 @@ export function generateOneTimePassword(): string {
     );
   return `${group()}-${group()}-${group()}`;
 }
+
+/**
+ * Bearer code for a welcome-reward claim, e.g. "K7M2FX" (displayed as
+ * "K7M-2FX"). 31^6 ≈ 887M combinations — unguessable at café scale, short
+ * enough to read across a counter. Stored WITHOUT the dash; normalize user
+ * input with normalizeRewardCode() before lookups.
+ */
+export function generateRewardCode(): string {
+  return Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
+}
+
+/** Uppercase and strip separators/spaces so "k7m-2fx" matches "K7M2FX". */
+export function normalizeRewardCode(input: string): string {
+  return input.toUpperCase().replace(/[^0-9A-Z]/g, "");
+}
+
+/** "K7M2FX" → "K7M-2FX" for display. */
+export function formatRewardCode(code: string): string {
+  return code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code;
+}

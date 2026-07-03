@@ -100,7 +100,9 @@ const optionalUrl = z
   .optional()
   .or(z.literal("").transform(() => null));
 
-export const businessUpdateSchema = z.object({
+// Base object kept separate so adminBusinessUpdateSchema can .extend() it
+// (ZodEffects from .refine() has no .extend).
+const businessUpdateFields = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   logoUrl: optionalUrl,
   address: z.string().trim().max(300).optional(),
@@ -124,7 +126,27 @@ export const businessUpdateSchema = z.object({
   timezone: z.string().trim().max(60).optional(),
   notifyComplaints: z.boolean().optional(),
   notifyWeeklyDigest: z.boolean().optional(),
+  // Welcome reward (first-time funnel completers). COMPLIANCE: a signup
+  // gift, never review payment — see the funnel grant logic.
+  welcomeRewardEnabled: z.boolean().optional(),
+  welcomeRewardText: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .or(z.literal("").transform(() => null)),
+  welcomeRewardExpiryDays: z.number().int().min(1).max(365).optional(),
 });
+
+export const businessUpdateSchema = businessUpdateFields.refine(
+  (v) =>
+    v.welcomeRewardEnabled !== true ||
+    (typeof v.welcomeRewardText === "string" && v.welcomeRewardText.length >= 3),
+  {
+    message: "Describe the reward (at least 3 characters) before enabling it",
+    path: ["welcomeRewardText"],
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Customers
@@ -267,12 +289,22 @@ export const adminBusinessCreateSchema = z.object({
   demoRequestId: z.string().trim().min(1).optional(),
 });
 
-export const adminBusinessUpdateSchema = businessUpdateSchema.extend({
-  slug: slugField.optional(),
-  suspended: z.boolean().optional(),
-  // Loyalty changes go through applyLoyaltyConfig (bulk tier recompute).
-  loyalty: loyaltySettingsSchema.optional(),
-});
+export const adminBusinessUpdateSchema = businessUpdateFields
+  .extend({
+    slug: slugField.optional(),
+    suspended: z.boolean().optional(),
+    // Loyalty changes go through applyLoyaltyConfig (bulk tier recompute).
+    loyalty: loyaltySettingsSchema.optional(),
+  })
+  .refine(
+    (v) =>
+      v.welcomeRewardEnabled !== true ||
+      (typeof v.welcomeRewardText === "string" && v.welcomeRewardText.length >= 3),
+    {
+      message: "Describe the reward (at least 3 characters) before enabling it",
+      path: ["welcomeRewardText"],
+    }
+  );
 
 export const adminUserCreateSchema = z.object({
   name: z.string().trim().min(1).max(100),

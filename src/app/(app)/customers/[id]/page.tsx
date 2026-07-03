@@ -34,9 +34,19 @@ export default async function CustomerDetailPage({
     include: {
       visits: { orderBy: { visitedAt: "desc" }, take: 10 },
       reviews: { orderBy: { createdAt: "desc" }, take: 10 },
+      rewardClaims: { where: { kind: "WELCOME" }, take: 1 },
     },
   });
   if (!customer) notFound();
+
+  const welcomeClaim = customer.rewardClaims[0] ?? null;
+  const welcomeClaimStatus = !welcomeClaim
+    ? null
+    : welcomeClaim.status === "PENDING" &&
+        welcomeClaim.expiresAt &&
+        welcomeClaim.expiresAt < new Date()
+      ? "EXPIRED"
+      : welcomeClaim.status;
 
   const name = customer.lastName
     ? `${customer.firstName} ${customer.lastName}`
@@ -77,6 +87,42 @@ export default async function CustomerDetailPage({
         />
         <StatCard label="Last visit" value={formatDate(customer.lastVisitAt)} />
       </div>
+
+      {welcomeClaim ? (
+        <Card className="mt-6">
+          <CardBody className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                🎁 Welcome gift: {welcomeClaim.rewardText}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Code{" "}
+                <span className="font-mono font-bold text-slate-700">
+                  {welcomeClaim.code.length === 6
+                    ? `${welcomeClaim.code.slice(0, 3)}-${welcomeClaim.code.slice(3)}`
+                    : welcomeClaim.code}
+                </span>
+                {welcomeClaimStatus === "REDEEMED" && welcomeClaim.redeemedAt
+                  ? ` · redeemed ${formatDate(welcomeClaim.redeemedAt)}`
+                  : welcomeClaim.expiresAt
+                    ? ` · valid until ${formatDate(welcomeClaim.expiresAt)}`
+                    : ""}
+              </p>
+            </div>
+            <Badge
+              className={
+                welcomeClaimStatus === "REDEEMED"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : welcomeClaimStatus === "EXPIRED"
+                    ? "border-slate-200 bg-slate-50 text-slate-500"
+                    : "border-amber-300 bg-amber-50 text-amber-700"
+              }
+            >
+              {welcomeClaimStatus === "PENDING" ? "waiting to be claimed" : welcomeClaimStatus?.toLowerCase()}
+            </Badge>
+          </CardBody>
+        </Card>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Recent visits */}

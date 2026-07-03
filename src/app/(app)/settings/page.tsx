@@ -11,6 +11,7 @@ import {
 import { SettingsForm } from "./settings-form";
 import { LoyaltyForm } from "./loyalty-form";
 import { NotificationsForm } from "./notifications-form";
+import { WelcomeRewardForm } from "./welcome-reward-form";
 import { ChangePasswordForm } from "@/components/change-password-form";
 
 type SocialLinks = { instagram?: string; facebook?: string; tiktok?: string };
@@ -91,6 +92,23 @@ export default async function SettingsPage() {
                 silverThreshold: business.silverThreshold,
                 goldThreshold: business.goldThreshold,
                 vipThreshold: business.vipThreshold,
+              }}
+            />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Welcome reward"
+            description="A one-time gift that gets first-time guests to scan, join your list, and come back to claim it."
+          />
+          <CardBody>
+            <WelcomeRewardForm
+              canEdit={canEdit}
+              initial={{
+                welcomeRewardEnabled: business.welcomeRewardEnabled,
+                welcomeRewardText: business.welcomeRewardText ?? "",
+                welcomeRewardExpiryDays: business.welcomeRewardExpiryDays,
               }}
             />
           </CardBody>
