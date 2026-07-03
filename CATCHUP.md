@@ -34,6 +34,23 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-03 — Session 8e (Mac): auth pages redesigned + login busy states
+- All entry pages (login, forgot/reset password, /change-password) now share
+  the café-print design via `AuthShell` + `AuthSubmitButton` in
+  `src/components/marketing/auth.tsx` (paper/ember/Fraunces, coffee rings,
+  grain — same language as the landing). The demo-request form imports the
+  same input/label/error classes, so all public forms are one system now.
+- **Login UX**: submit button shows a spinner with staged labels — "Signing
+  you in…" during auth, "Pouring your dashboard…" through the redirect —
+  and the form locks; the user never stares at a dead page. Same busy
+  pattern on forgot/reset/change-password and the demo form. Login also
+  gained a show/hide password toggle.
+- ChangePasswordForm takes `variant="app" | "mkt"`: Settings keeps the slate
+  owner-app look, /change-password renders café-print.
+- Verified in browser: spinner states observed live (122ms → busy,
+  1.4s → redirect label, lands on /dashboard), mobile layout, Settings
+  unaffected, production build 47 routes.
+
 ### 2026-07-03 — Session 8d (Mac): SUPABASE PROJECT MOVED TO IRELAND
 - **User recreated the Supabase project in eu-west-1** (new ref
   `ghubhzbvkfjhtywvtvuj`) and deleted the Tokyo one. This machine rewired

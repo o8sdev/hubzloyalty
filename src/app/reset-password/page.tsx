@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, Input, Label } from "@/components/ui";
+import {
+  AuthShell,
+  AuthSubmitButton,
+  mktError,
+  mktInput,
+  mktLabel,
+} from "@/components/marketing/auth";
 
 /**
  * Reached from the emailed recovery link: /auth/confirm verified the token
@@ -50,86 +56,116 @@ export default function ResetPasswordPage() {
       const data: { error?: string } = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Could not reset password");
+        setLoading(false);
         return;
       }
       setDone(true);
       window.setTimeout(() => router.push("/login"), 1500);
     } catch {
       setError("Network error — please try again");
-    } finally {
       setLoading(false);
     }
   }
 
   if (expired) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <Card className="w-full max-w-md p-8">
-          <h1 className="text-xl font-bold text-slate-900">Link expired</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            This reset link is no longer valid. Request a fresh one — it only
-            takes a moment.
-          </p>
-          <p className="mt-6 text-center text-sm">
+      <AuthShell
+        eyebrow="password reset"
+        title={
+          <>
+            Link <span className="italic text-ember">expired.</span>
+          </>
+        }
+        subtitle="This reset link is no longer valid. Request a fresh one — it only takes a moment."
+        below={
+          <p>
             <Link
               href="/forgot-password"
-              className="font-medium text-brand-700 hover:underline"
+              className="font-semibold text-ember hover:underline"
             >
-              Request a new reset link
+              Request a new reset link →
             </Link>
           </p>
-        </Card>
-      </main>
+        }
+      >
+        <p className="f-mono text-center text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+          links work once · expire in 1 hour
+        </p>
+      </AuthShell>
     );
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <Card className="w-full max-w-md p-8">
-        <h1 className="text-xl font-bold text-slate-900">Choose a new password</h1>
-        {done ? (
-          <p className="mt-4 rounded-lg bg-green-50 px-3 py-3 text-sm text-green-800">
-            Password updated — taking you to login…
-          </p>
-        ) : (
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <div>
-              <Label htmlFor="password">New password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
-              />
-            </div>
-            <div>
-              <Label htmlFor="confirm">Confirm password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Repeat the password"
-              />
-            </div>
-            {error ? (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error}
-              </p>
-            ) : null}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Saving…" : "Set new password"}
-            </Button>
-          </form>
-        )}
-      </Card>
-    </main>
+    <AuthShell
+      eyebrow="password reset"
+      title={
+        <>
+          Choose a <span className="italic text-ember">new one.</span>
+        </>
+      }
+      subtitle={done ? undefined : "At least 8 characters. Make it yours."}
+      below={
+        <p>
+          <Link href="/login" className="font-semibold text-ember hover:underline">
+            Back to login →
+          </Link>
+        </p>
+      }
+    >
+      {done ? (
+        <div className="py-4 text-center">
+          <span
+            aria-hidden
+            className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-moss text-lg font-bold text-cream"
+          >
+            ✓
+          </span>
+          <p className="f-display mt-5 text-xl font-semibold">Password updated.</p>
+          <p className="mt-2 text-sm text-ink-soft">Taking you to login…</p>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="password" className={mktLabel}>
+              New password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className={mktInput}
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label htmlFor="confirm" className={mktLabel}>
+              Confirm password
+            </label>
+            <input
+              id="confirm"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Repeat the password"
+              className={mktInput}
+              disabled={loading}
+            />
+          </div>
+          {error ? <p className={mktError}>{error}</p> : null}
+          <AuthSubmitButton loading={loading} loadingLabel="Saving…">
+            Set new password <span aria-hidden>→</span>
+          </AuthSubmitButton>
+        </form>
+      )}
+    </AuthShell>
   );
 }

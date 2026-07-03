@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-
-// Form controls styled for the .mkt marketing surface (paper/ink palette) —
-// intentionally NOT the owner-app UI kit.
-const inputClass =
-  "w-full rounded-2xl border border-ink/15 bg-paper px-4 py-3 text-[0.95rem] text-ink placeholder:text-ink-faint transition-colors duration-300 focus:border-ember focus:outline-none focus:ring-2 focus:ring-ember/20";
-
-const labelClass =
-  "f-mono mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-ink-faint";
+import {
+  Spinner,
+  mktError,
+  mktInput as inputClass,
+  mktLabel as labelClass,
+} from "@/components/marketing/auth";
 
 export function DemoRequestForm() {
   const [form, setForm] = useState({
@@ -175,19 +173,24 @@ export function DemoRequestForm() {
             />
           </div>
 
-          {error ? (
-            <p className="rounded-xl border border-ember/30 bg-ember/10 px-4 py-3 text-sm text-ember-deep">
-              {error}
-            </p>
-          ) : null}
+          {error ? <p className={mktError}>{error}</p> : null}
 
           <button
             type="submit"
             disabled={loading}
-            className="mkt-btn mkt-btn-primary w-full px-7 py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={loading}
+            className="mkt-btn mkt-btn-primary w-full px-7 py-3.5 text-base disabled:cursor-progress disabled:opacity-75"
           >
-            {loading ? "Sending…" : "Request a demo"}
-            <span aria-hidden>→</span>
+            {loading ? (
+              <>
+                <Spinner />
+                Sending your request…
+              </>
+            ) : (
+              <>
+                Request a demo <span aria-hidden>→</span>
+              </>
+            )}
           </button>
 
           <p className="f-mono text-center text-[10px] uppercase tracking-[0.16em] text-ink-faint">

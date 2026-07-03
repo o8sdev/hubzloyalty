@@ -3,20 +3,32 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, Input, Label } from "@/components/ui";
+import {
+  AuthShell,
+  AuthSubmitButton,
+  mktError,
+  mktInput,
+  mktLabel,
+} from "@/components/marketing/auth";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // "idle" → "authenticating" (request in flight) → "redirecting" (success,
+  // navigation + server render in progress). The button stays busy through
+  // BOTH so the user is never staring at a dead form.
+  const [phase, setPhase] = useState<"idle" | "authenticating" | "redirecting">(
+    "idle"
+  );
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setPhase("authenticating");
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -26,8 +38,10 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Login failed");
+        setPhase("idle");
         return;
       }
+      setPhase("redirecting");
       // Forced first-login password change takes precedence over both the
       // admin home and any ?next target.
       if (data.mustChangePassword) {
@@ -47,78 +61,104 @@ function LoginForm() {
       router.refresh();
     } catch {
       setError("Network error — please try again");
-    } finally {
-      setLoading(false);
+      setPhase("idle");
     }
   }
 
+  const busy = phase !== "idle";
+
   return (
-    <Card className="w-full max-w-md p-8">
-      <h1 className="text-xl font-bold text-slate-900">Welcome back</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Log in to your LoyaltyCRM dashboard.
-      </p>
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+    <AuthShell
+      eyebrow="owner login"
+      title={
+        <>
+          Welcome <span className="italic text-ember">back.</span>
+        </>
+      }
+      subtitle="Sign in to your dashboard — the inbox, the list, the numbers."
+      below={
+        <p>
+          New here?{" "}
+          <Link href="/request-demo" className="font-semibold text-ember hover:underline">
+            Request a demo →
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={onSubmit} className="space-y-5">
         <div>
-          <Label htmlFor="email">Email</Label>
-          <Input
+          <label htmlFor="email" className={mktLabel}>
+            Email
+          </label>
+          <input
             id="email"
             type="email"
             required
             autoComplete="email"
+            autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@yourcafe.com"
+            className={mktInput}
+            disabled={busy}
           />
         </div>
         <div>
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-          />
+          <div className="flex items-baseline justify-between">
+            <label htmlFor="password" className={mktLabel}>
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="f-mono mb-1.5 text-[10px] uppercase tracking-[0.14em] text-ember hover:underline"
+              tabIndex={busy ? -1 : 0}
+            >
+              Forgot?
+            </Link>
+          </div>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className={`${mktInput} pr-16`}
+              disabled={busy}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              disabled={busy}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="f-mono absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-1 text-[10px] uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ember"
+            >
+              {showPassword ? "hide" : "show"}
+            </button>
+          </div>
         </div>
-        {error ? (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        ) : null}
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Logging in…" : "Log in"}
-        </Button>
-        <p className="text-center">
-          <Link
-            href="/forgot-password"
-            className="text-sm text-slate-500 hover:text-brand-700 hover:underline"
-          >
-            Forgot your password?
-          </Link>
-        </p>
-      </form>
-      <p className="mt-6 text-center text-sm text-slate-500">
-        Want LoyaltyCRM for your business?{" "}
-        <Link
-          href="/request-demo"
-          className="font-medium text-brand-700 hover:underline"
+
+        {error ? <p className={mktError}>{error}</p> : null}
+
+        <AuthSubmitButton
+          loading={busy}
+          loadingLabel={
+            phase === "redirecting" ? "Pouring your dashboard…" : "Signing you in…"
+          }
         >
-          Request a demo
-        </Link>
-      </p>
-    </Card>
+          Log in <span aria-hidden>→</span>
+        </AuthSubmitButton>
+      </form>
+    </AuthShell>
   );
 }
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <Suspense>
-        <LoginForm />
-      </Suspense>
-    </main>
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

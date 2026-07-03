@@ -3,7 +3,13 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, Input, Label } from "@/components/ui";
+import {
+  AuthShell,
+  AuthSubmitButton,
+  mktError,
+  mktInput,
+  mktLabel,
+} from "@/components/marketing/auth";
 
 function ForgotPasswordForm() {
   const searchParams = useSearchParams();
@@ -37,56 +43,73 @@ function ForgotPasswordForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <Card className="w-full max-w-md p-8">
-        <h1 className="text-xl font-bold text-slate-900">Reset your password</h1>
-        {linkExpired && !sent ? (
-          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            That reset link was invalid or had expired — request a fresh one
-            below.
-          </p>
-        ) : null}
-        {sent ? (
-          <p className="mt-4 rounded-lg bg-green-50 px-3 py-3 text-sm text-green-800">
-            If an account exists for <strong>{email}</strong>, a reset link is
-            on its way. The link works once and expires in 1 hour.
-          </p>
-        ) : (
-          <>
-            <p className="mt-1 text-sm text-slate-500">
-              Enter your account email and we&apos;ll send you a reset link.
-            </p>
-            <form onSubmit={onSubmit} className="mt-6 space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@yourcafe.com"
-                />
-              </div>
-              {error ? (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {error}
-                </p>
-              ) : null}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending…" : "Send reset link"}
-              </Button>
-            </form>
-          </>
-        )}
-        <p className="mt-6 text-center text-sm text-slate-500">
-          <Link href="/login" className="font-medium text-brand-700 hover:underline">
-            Back to login
+    <AuthShell
+      eyebrow="password reset"
+      title={
+        <>
+          Locked <span className="italic text-ember">out?</span>
+        </>
+      }
+      subtitle={
+        sent
+          ? undefined
+          : "Enter your account email and we'll send you a one-time reset link."
+      }
+      below={
+        <p>
+          Remembered it?{" "}
+          <Link href="/login" className="font-semibold text-ember hover:underline">
+            Back to login →
           </Link>
         </p>
-      </Card>
-    </main>
+      }
+    >
+      {sent ? (
+        <div className="py-4 text-center">
+          <span
+            aria-hidden
+            className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-moss text-lg font-bold text-cream"
+          >
+            ✉
+          </span>
+          <p className="f-display mt-5 text-xl font-semibold">Check your inbox.</p>
+          <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-ink-soft">
+            If an account exists for <strong>{email}</strong>, a reset link is on
+            its way. It works once and expires in 1 hour.
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-5">
+          {linkExpired ? (
+            <p className="rounded-xl border border-gold/50 bg-gold/15 px-4 py-3 text-sm text-ink-soft">
+              That reset link was invalid or had expired — request a fresh one
+              below.
+            </p>
+          ) : null}
+          <div>
+            <label htmlFor="email" className={mktLabel}>
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@yourcafe.com"
+              className={mktInput}
+              disabled={loading}
+            />
+          </div>
+          {error ? <p className={mktError}>{error}</p> : null}
+          <AuthSubmitButton loading={loading} loadingLabel="Sending the link…">
+            Send reset link <span aria-hidden>→</span>
+          </AuthSubmitButton>
+        </form>
+      )}
+    </AuthShell>
   );
 }
 

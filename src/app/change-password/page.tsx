@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { Card } from "@/components/ui";
+import { AuthShell } from "@/components/marketing/auth";
 import { ChangePasswordForm } from "@/components/change-password-form";
 
 /**
@@ -16,23 +16,30 @@ export default async function ChangePasswordPage() {
   const forced = session.mustChangePassword;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <Card className="w-full max-w-md p-8">
-        <h1 className="text-xl font-bold text-slate-900">
-          {forced ? "Set your password" : "Change password"}
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {forced
-            ? "Your account was created with a one-time password. Choose your own to continue."
-            : `Change the password for ${session.email}.`}
-        </p>
-        <div className="mt-6">
-          <ChangePasswordForm
-            requireCurrent={!forced}
-            redirectTo={session.platformAdmin ? "/admin" : "/dashboard"}
-          />
-        </div>
-      </Card>
-    </main>
+    <AuthShell
+      eyebrow={forced ? "one last thing" : "account"}
+      title={
+        forced ? (
+          <>
+            Make it <span className="italic text-ember">yours.</span>
+          </>
+        ) : (
+          <>
+            Change your <span className="italic text-ember">password.</span>
+          </>
+        )
+      }
+      subtitle={
+        forced
+          ? "Your account was created with a one-time password. Choose your own to continue — takes ten seconds."
+          : `Set a new password for ${session.email}.`
+      }
+    >
+      <ChangePasswordForm
+        variant="mkt"
+        requireCurrent={!forced}
+        redirectTo={session.platformAdmin ? "/admin" : "/dashboard"}
+      />
+    </AuthShell>
   );
 }
