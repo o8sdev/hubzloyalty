@@ -192,6 +192,10 @@ export const customerListQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   tier: z.enum(TIERS).optional(),
   tag: z.string().trim().max(40).optional(),
+  source: z.enum(CUSTOMER_SOURCES).optional(),
+  consent: z.enum(["yes", "no"]).optional(),
+  // "1" = only guests who asked for a complaint callback (tag-backed).
+  callback: z.literal("1").optional(),
   sort: z.enum(["recent", "name", "visits", "lastVisit"]).optional().default("recent"),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(25),

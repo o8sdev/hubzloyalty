@@ -181,10 +181,10 @@ export function CardBody({
 }
 
 const tierStyles: Record<Tier, string> = {
-  BRONZE: "bg-orange-50 text-orange-700 border-orange-200",
+  BRONZE: "bg-orange-50 text-orange-800 border-orange-200",
   SILVER: "bg-slate-100 text-slate-600 border-slate-300",
-  GOLD: "bg-amber-50 text-amber-700 border-amber-300",
-  VIP: "bg-violet-50 text-violet-700 border-violet-300",
+  GOLD: "bg-gold/15 text-amber-700 border-gold/50",
+  VIP: "bg-brand-700 text-white border-brand-700",
 };
 
 export function TierBadge({ tier }: { tier: string }) {
@@ -220,15 +220,29 @@ export function StatCard({
   label,
   value,
   hint,
+  icon,
 }: {
   label: string;
   value: React.ReactNode;
   hint?: string;
+  icon?: React.ReactNode;
 }) {
   return (
-    <Card className="px-5 py-4">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
+    <Card className="group px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-slate-500">{label}</p>
+        {icon ? (
+          <span
+            aria-hidden
+            className="text-base opacity-60 transition-transform duration-300 group-hover:scale-125"
+          >
+            {icon}
+          </span>
+        ) : null}
+      </div>
+      <p className="f-display mt-1 text-[1.7rem] font-semibold leading-tight text-slate-900">
+        {value}
+      </p>
       {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
     </Card>
   );

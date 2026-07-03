@@ -61,7 +61,7 @@ businessId/role/platformAdmin/mustChangePassword without a DB read.
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| GET | `/api/customers` | `?q&tier&tag&sort=recent\|name\|visits\|lastVisit&page&pageSize` → `{ customers, total, page, pageSize }` |
+| GET | `/api/customers` | `?q&tier&tag&source=QR\|MANUAL\|IMPORT&consent=yes\|no&callback=1&sort=recent\|name\|visits\|lastVisit&page&pageSize` → `{ customers, total, page, pageSize, facets: { tiers } }` (facets ignore the active tier so chip counts stay stable; shared builder in `src/lib/customers.ts`) |
 | POST | `/api/customers` | `customerCreateSchema`, source `MANUAL` → 201 |
 | GET | `/api/customers/:id` | + last 10 visits, last 10 reviews |
 | PATCH | `/api/customers/:id` | partial update |

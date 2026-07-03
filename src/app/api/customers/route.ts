@@ -1,5 +1,4 @@
 import type { NextRequest } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { badRequest, json, parseBody, requireApiSession, serverError } from "@/lib/http";
 import {
@@ -7,6 +6,7 @@ import {
   customerCreateSchema,
   customerListQuerySchema,
 } from "@/lib/validation";
+import { buildCustomerWhere, customerOrderBy } from "@/lib/customers";
 
 export async function GET(req: NextRequest) {
   const auth = await requireApiSession();
@@ -23,40 +23,32 @@ export async function GET(req: NextRequest) {
   if (!parsed.success) {
     return badRequest("Invalid query parameters", parsed.error.flatten().fieldErrors);
   }
-  const { q, tier, tag, sort, page, pageSize } = parsed.data;
+  const query = parsed.data;
+  const { page, pageSize } = query;
 
-  const where: Prisma.CustomerWhereInput = { businessId };
-  if (q) {
-    where.OR = [
-      { firstName: { contains: q, mode: "insensitive" } },
-      { lastName: { contains: q, mode: "insensitive" } },
-      { phone: { contains: q } },
-      { email: { contains: q, mode: "insensitive" } },
-    ];
-  }
-  if (tier) where.tier = tier;
-  if (tag) where.tags = { contains: tag };
-
-  const orderBy: Prisma.CustomerOrderByWithRelationInput =
-    sort === "name"
-      ? { firstName: "asc" }
-      : sort === "visits"
-        ? { totalVisits: "desc" }
-        : sort === "lastVisit"
-          ? { lastVisitAt: "desc" }
-          : { createdAt: "desc" };
+  const where = buildCustomerWhere(businessId, query);
+  // Tier chip counts: same filters MINUS tier, so the chips stay stable
+  // while one of them is active.
+  const facetWhere = buildCustomerWhere(businessId, { ...query, tier: undefined });
 
   try {
-    const [customers, total] = await Promise.all([
+    const [customers, total, tierGroups] = await Promise.all([
       db.customer.findMany({
         where,
-        orderBy,
+        orderBy: customerOrderBy(query.sort),
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       db.customer.count({ where }),
+      db.customer.groupBy({
+        by: ["tier"],
+        where: facetWhere,
+        _count: true,
+      }),
     ]);
-    return json({ customers, total, page, pageSize });
+    const tiers: Record<string, number> = {};
+    for (const group of tierGroups) tiers[group.tier] = group._count;
+    return json({ customers, total, page, pageSize, facets: { tiers } });
   } catch (err) {
     console.error("customer list failed", err);
     return serverError("Could not load customers");

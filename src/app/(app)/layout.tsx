@@ -21,25 +21,36 @@ export default async function AppLayout({
   });
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-paper">
       {/* Sidebar (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 md:flex">
-        <Link
-          href="/dashboard"
-          className="mb-8 flex items-center gap-2 px-2 text-base font-bold text-brand-800"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700 text-xs font-black text-white">
+      <aside className="sticky top-0 hidden h-screen w-60 flex-col border-r border-ink/10 bg-cream px-4 py-6 md:flex">
+        <Link href="/dashboard" className="group mb-1 flex items-baseline gap-2 px-2">
+          <span className="flex h-7 w-7 items-center justify-center self-center rounded-full bg-brand-700 text-xs font-black text-white transition-transform duration-300 group-hover:rotate-[15deg]">
             L
           </span>
-          LoyaltyCRM
+          <span className="f-display text-lg font-semibold tracking-tight text-ink">
+            LoyaltyCRM
+          </span>
         </Link>
+        <p className="mb-7 px-2 pl-11 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-faint">
+          guest book
+        </p>
         <AppNav />
-        <div className="mt-auto border-t border-slate-200 pt-4">
-          <p className="truncate px-2 text-sm font-medium text-slate-700">
+        <div className="mt-auto border-t border-ink/10 pt-4">
+          <p className="f-display truncate px-2 text-sm font-semibold text-ink">
             {business?.name ?? "Your business"}
           </p>
-          <div className="flex items-center justify-between px-2 pt-1">
-            <p className="truncate text-xs text-slate-400">{session.name}</p>
+          {business?.slug ? (
+            <Link
+              href={`/r/${business.slug}`}
+              target="_blank"
+              className="mx-2 mt-1 inline-block rounded-full border border-ink/15 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-faint transition-colors hover:border-brand-700 hover:text-brand-700"
+            >
+              /r/{business.slug} ↗
+            </Link>
+          ) : null}
+          <div className="flex items-center justify-between px-2 pt-2">
+            <p className="truncate text-xs text-ink-faint">{session.name}</p>
             <LogoutButton />
           </div>
         </div>
@@ -47,19 +58,16 @@ export default async function AppLayout({
 
       {/* Mobile top bar */}
       <div className="flex w-full flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-sm font-bold text-brand-800"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-700 text-[10px] font-black text-white">
+        <header className="flex items-center justify-between border-b border-ink/10 bg-cream px-4 py-3 md:hidden">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[10px] font-black text-white">
               L
             </span>
-            LoyaltyCRM
+            <span className="f-display text-sm font-semibold text-ink">LoyaltyCRM</span>
           </Link>
-          <nav className="flex gap-3 text-xs font-medium text-slate-600">
+          <nav className="flex gap-3 text-xs font-medium text-ink-soft">
             <Link href="/dashboard">Home</Link>
-            <Link href="/customers">Customers</Link>
+            <Link href="/customers">Guests</Link>
             <Link href="/reviews">Reviews</Link>
             <Link href="/settings">Settings</Link>
           </nav>

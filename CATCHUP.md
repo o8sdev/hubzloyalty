@@ -34,7 +34,33 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
-### 2026-07-03 — Session 9 (Mac): welcome reward for first-time scanners
+### 2026-07-03 — Session 9b (Mac): owner app redesign + live guests explorer
+- **The owner app now wears the café-print identity** (user-scoped: platform
+  /admin deliberately untouched apart from inheriting the accent).
+  `--color-brand-*` remapped teal → ember (brand-700 == marketing ember), so
+  every button/link/active state across the product is one color story.
+  App shell: paper background, cream sidebar, ember round logo + Fraunces
+  wordmark, "guest book" eyebrow, public /r/slug ↗ chip; nav renamed
+  Customers → **Guests**.
+- **Dashboard**: Fraunces greeting, animated stat numbers (reuses the
+  marketing `Counter`), stat icons + hover lift, and a new **14-day scan
+  activity bar chart** (single GROUP-BY-day query riding the existing
+  Promise.all; pure CSS bars, gold bar = today, hover shows counts).
+  Attention + recent lists reskinned (initial avatars, callback badge,
+  warm hover), redeem widget unchanged.
+- **Guests page rebuilt as a live explorer** (`customers-explorer.tsx`):
+  debounced instant search, tier chips with live facet counts, quick
+  filters (☎ callback-requested, consent yes/no, source QR/manual/import),
+  sort select, stale-while-loading (old rows stay dimmed under a shimmer
+  rail), Prev/Next, filters mirrored to the URL via replaceState (shareable;
+  reload restores them — verified). API: customerListQuerySchema gained
+  source/consent/callback; where/orderBy extracted to `src/lib/customers.ts`
+  (shared by route + server first paint); GET returns `facets.tiers`.
+- Verified in browser: search "nino" → 1 result in place; Gold chip → 12/12;
+  ☎ chip → the 2 callback guests; consent chip → 25 (matches DB); sort by
+  visits; URL restore after reload; mobile card layout. Build 47 routes.
+- Note: preview evals must poll for the SETTLED count — stale-while-loading
+  keeps previous rows visible during fetch (by design).
 - Planned first (plan mode, user approved), then built: businesses can give
   first-time funnel completers a **one-time gift code** to claim at the
   counter. COMPLIANCE FRAME everywhere: it's a gift for JOINING THE LIST —

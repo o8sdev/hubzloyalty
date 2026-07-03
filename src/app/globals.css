@@ -1,16 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-300: #5eead4;
-  --color-brand-400: #2dd4bf;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
+  /* Brand = the marketing site's burnt ember, so the tool and the site are
+     one product. brand-700 is the primary action color (matches .mkt ember). */
+  --color-brand-50: #fdf4ed;
+  --color-brand-100: #fbe6d7;
+  --color-brand-200: #f6c9ab;
+  --color-brand-300: #efa478;
+  --color-brand-400: #e57b47;
+  --color-brand-500: #dd6630;
+  --color-brand-600: #d4551e;
+  --color-brand-700: #d4551e;
+  --color-brand-800: #b23f10;
+  --color-brand-900: #8f300b;
   --color-accent-400: #fbbf24;
   --color-accent-500: #f59e0b;
   --color-accent-600: #d97706;
@@ -38,6 +40,72 @@ body {
   @apply bg-slate-50 text-slate-900 antialiased;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ===========================================================================
+   Owner app ("the guest book") — warm-tool utilities shared by /dashboard,
+   /customers etc. Kept tiny: the heavy lifting is Tailwind + theme tokens.
+   ======================================================================== */
+
+/* Bar chart bars grow in on load. */
+@keyframes app-bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.app-bar {
+  transform-origin: bottom;
+  animation: app-bar-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Skeleton shimmer for the customers explorer while fetching. */
+@keyframes app-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.app-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgb(33 23 17 / 0.05) 25%,
+    rgb(33 23 17 / 0.11) 50%,
+    rgb(33 23 17 / 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: app-shimmer 1.4s linear infinite;
+}
+
+/* Rows/cards ease in as results change. */
+@keyframes app-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.app-row-in {
+  animation: app-row-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-bar,
+  .app-row-in {
+    animation-duration: 0.01ms !important;
+  }
+  .app-shimmer {
+    animation: none;
+  }
 }
 
 /* ===========================================================================
