@@ -1,27 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { createServerClient } from "@supabase/ssr";
 
-const SESSION_COOKIE = "lcrm_session";
-
+/**
+ * Refreshes the Supabase session cookie when needed and gates the app shells
+ * on having one. This is a cheap presence/refresh check — authenticity and
+ * the platformAdmin claim are enforced server-side by requireSession /
+ * requirePlatformAdmin (src/lib/session.ts), which verify the token.
+ */
 export async function middleware(req: NextRequest) {
-  const token = req.cookies.get(SESSION_COOKIE)?.value;
-  if (token && process.env.SESSION_SECRET) {
-    try {
-      await jwtVerify(token, new TextEncoder().encode(process.env.SESSION_SECRET));
-      return NextResponse.next();
-    } catch {
-      // fall through to redirect
+  let res = NextResponse.next({ request: req });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          for (const { name, value } of cookiesToSet) {
+            req.cookies.set(name, value);
+          }
+          res = NextResponse.next({ request: req });
+          for (const { name, value, options } of cookiesToSet) {
+            res.cookies.set(name, value, options);
+          }
+        },
+      },
     }
-  }
+  );
+
+  // Reads the cookie and refreshes the token if expired (network only then).
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session) return res;
+
   const url = req.nextUrl.clone();
   url.pathname = "/login";
+  url.search = "";
   url.searchParams.set("next", req.nextUrl.pathname);
   return NextResponse.redirect(url);
 }
 
-// Protect the owner-facing app. Public routes (/, /login, /register, /r/[slug],
-// /api/public/*, /api/auth/*) are simply not matched here. API routes enforce
-// auth themselves via requireApiSession().
+// Protect the owner-facing app. Public routes (/, /login, /request-demo,
+// /r/[slug], /api/public/*, /api/auth/*, /auth/*) are simply not matched
+// here. API routes enforce auth themselves via requireApiSession().
 export const config = {
   matcher: [
     "/dashboard/:path*",
@@ -32,7 +58,7 @@ export const config = {
     "/campaigns/:path*",
     "/analytics/:path*",
     "/change-password",
-    // Platform admin. The middleware only checks for a valid JWT; the
+    // Platform admin. The middleware only checks for a session; the
     // platformAdmin claim itself is enforced by requirePlatformAdmin in the
     // layout and requireApiPlatformAdmin in /api/admin/* handlers.
     "/admin/:path*",

@@ -80,8 +80,9 @@ export const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
 });
 
+// The recovery session (established by the emailed /auth/confirm link)
+// identifies the account; the body only carries the new password.
 export const resetPasswordSchema = z.object({
-  token: z.string().trim().min(32).max(200),
   password: z.string().min(8).max(200),
 });
 

@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import { createClient } from "@supabase/supabase-js";
 import { db } from "@/lib/db";
 import {
   badRequest,
@@ -8,7 +8,12 @@ import {
   unauthorized,
 } from "@/lib/http";
 import { changePasswordSchema } from "@/lib/validation";
-import { createSession, getSession } from "@/lib/session";
+import { getSession } from "@/lib/session";
+import {
+  invalidateVerifiedAuthUser,
+  supabaseServer,
+  syncAuthClaims,
+} from "@/lib/supabase";
 
 /**
  * Change the signed-in user's own password.
@@ -36,8 +41,18 @@ export async function POST(req: Request) {
       if (!currentPassword) {
         return badRequest("Current password is required");
       }
-      const valid = await bcrypt.compare(currentPassword, user.passwordHash);
-      if (!valid) return badRequest("Current password is incorrect");
+      // Verify by re-authenticating against Supabase with a throwaway
+      // client (no cookie persistence — the minted session is discarded).
+      const probe = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      const { error: probeError } = await probe.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (probeError) return badRequest("Current password is incorrect");
     }
 
     if (currentPassword !== undefined && currentPassword === newPassword) {
@@ -46,25 +61,19 @@ export async function POST(req: Request) {
       );
     }
 
+    const supabase = await supabaseServer();
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) return badRequest(error.message);
+
     const updated = await db.user.update({
       where: { id: user.id },
-      data: {
-        passwordHash: await bcrypt.hash(newPassword, 10),
-        mustChangePassword: false,
-      },
+      data: { mustChangePassword: false },
     });
-
-    // Re-issue the session cookie so the mustChangePassword JWT claim updates
-    // (otherwise the (app) layout would keep redirecting to /change-password).
-    await createSession({
-      userId: updated.id,
-      businessId: updated.businessId ?? "",
-      role: updated.role,
-      platformAdmin: updated.isPlatformAdmin,
-      mustChangePassword: false,
-      name: updated.name,
-      email: updated.email,
-    });
+    // Mirror the cleared flag so the session stops routing to /change-password.
+    await syncAuthClaims(updated);
+    invalidateVerifiedAuthUser();
 
     return json({ ok: true });
   } catch (err) {

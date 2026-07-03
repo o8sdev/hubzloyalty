@@ -34,6 +34,44 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-03 — Session 8 (Mac): AUTH MIGRATED TO SUPABASE AUTH
+- **Why**: user decision after the "reset email never arrives" pain — reset
+  emails now actually deliver via Supabase's mailer (no Resend key needed
+  for auth mail; product mail still uses src/lib/mail.ts).
+- **Architecture**: auth.users owns identities/credentials/sessions/recovery;
+  the domain `User` row links via `authId` and OWNS tenancy facts, mirrored
+  into app_metadata by `syncAuthClaims()` (src/lib/supabase.ts). Session
+  facade (src/lib/session.ts) keeps the old `Session` shape — zero changes in
+  consumers. Cookies via @supabase/ssr; middleware refreshes them; getUser()
+  verification behind a 5-min in-memory cache (HS256 project; switching to
+  asymmetric signing keys in the dashboard would make verification fully
+  local — optional).
+- **Project config**: public signups DISABLED (`disable_signup`), site_url +
+  allowlist set to localhost for now (change at deploy!), password min 8.
+  New env: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY /
+  SUPABASE_SERVICE_ROLE_KEY (in Mac .env; Windows needs them copied).
+  SESSION_SECRET is dead; bcryptjs + jose removed.
+- **Data migration** (done, live): both users imported with bcrypt hashes
+  preserved (demo1234 still works; admin password unchanged), then
+  passwordHash + PasswordResetToken dropped. Migrations:
+  user_auth_id → scripts/migrate-users-to-supabase-auth.ts → cleanup.
+- **Flows rewired**: login (suspension gate + orphan rejection intact),
+  forgot → Supabase recovery email → /auth/confirm → /reset-password
+  (session-based, no token in body), change-password (current password
+  verified via throwaway sign-in), admin provisioning/user CRUD/business
+  delete all mirror to auth.users with compensation on failure. Seed
+  creates auth identities (never overwrites an existing admin password).
+- **Verified in browser end-to-end**: demo login (preserved password),
+  wrong-password 401, /admin gate for non-admins, dashboard render,
+  full recovery flow (confirm link → set password → old rejected),
+  OTP provisioning → forced change → re-login, business delete kills the
+  owner's auth identity (login 401), production build (47 routes).
+- A real recovery email was sent to rhlhabibli@gmail.com — the admin can
+  set their password from their inbox now.
+- **Deploy note**: update site_url/uri_allow_list + NEXT_PUBLIC_APP_URL to
+  the production domain, and configure custom SMTP on Supabase Auth
+  (built-in mailer is rate-limited, dev-grade).
+
 ### 2026-07-03 — Session 7 (Mac): live DB migrated, invite-only verified
 - Pulled Sessions 5–6, rebased this device's pending CATCHUP notes, pushed.
 - **Applied `20260702150000_invite_only_demo_requests` to the live DB**

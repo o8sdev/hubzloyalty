@@ -21,17 +21,24 @@ REST over Next.js route handlers. JSON in/out. Four trust zones:
 Validation: zod schemas in `src/lib/validation.ts` via `parseBody()`.
 Errors: `{ "error": string, "details"?: fieldErrors }` with 400/401/403/404/429/500.
 
-## Auth
+## Auth (Supabase Auth underneath)
+
+Identities, credentials, session cookies and recovery emails are Supabase
+Auth (`@supabase/ssr` cookies; public signups disabled project-side). The
+domain `User` row (linked via `authId`) owns tenancy facts and mirrors them
+into `app_metadata` (`syncAuthClaims()`), so sessions carry
+businessId/role/platformAdmin/mustChangePassword without a DB read.
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
 | POST | `/api/auth/register` | — | **410-style lockout: always 403.** The app is invite-only; onboarding goes through demo requests → admin provisioning. |
-| POST | `/api/auth/login` | `{ email, password }` | sets cookie → `{ ok, admin, mustChangePassword }` (401 on bad credentials, same message for both failure modes; 403 when the business is suspended). `mustChangePassword: true` routes the client to `/change-password`. Rate limit 20/15min/IP |
-| POST | `/api/auth/logout` | — | clears cookie |
-| GET | `/api/auth/me` | — | `{ user, business }` |
-| POST | `/api/auth/forgot` | `{ email }` | always `{ ok: true }` (no user enumeration); emails a single-use 1h reset link. Rate limit 5/h/IP |
-| POST | `/api/auth/reset` | `{ token, password }` | verifies + atomically consumes the token, sets the new password (also clears `mustChangePassword`). Rate limit 10/h/IP |
-| POST | `/api/auth/change-password` | `{ currentPassword?, newPassword }` | any authenticated account (incl. platform admins). `currentPassword` required unless `mustChangePassword` is set (first login with a one-time password); clears the flag and re-issues the session |
+| POST | `/api/auth/login` | `{ email, password }` | Supabase sign-in, sets cookies → `{ ok, admin, mustChangePassword }` (401 on bad credentials; 403 + sign-out when the business is suspended; orphan auth users are rejected). `mustChangePassword: true` routes the client to `/change-password`. Rate limit 20/15min/IP |
+| POST | `/api/auth/logout` | — | Supabase sign-out, clears cookies |
+| GET | `/api/auth/me` | — | `{ user, business }` (business null for platform-only accounts) |
+| POST | `/api/auth/forgot` | `{ email }` | always `{ ok: true }` (no user enumeration); Supabase sends the recovery email. Rate limit 5/h/IP |
+| GET | `/auth/confirm` | `?token_hash&type&next` | exchanges the emailed token for a session (verifyOtp) and redirects to `next` (same-origin only); failures land on `/forgot-password?error=expired` |
+| POST | `/api/auth/reset` | `{ password }` | sets a new password for the CURRENT (recovery) session; also clears `mustChangePassword`. Rate limit 10/h/IP |
+| POST | `/api/auth/change-password` | `{ currentPassword?, newPassword }` | any authenticated account (incl. platform admins). `currentPassword` (verified via a throwaway Supabase sign-in) required unless `mustChangePassword` is set; clears the flag and re-syncs claims |
 
 ## Demo requests (invite-only onboarding)
 

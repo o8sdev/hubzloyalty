@@ -36,18 +36,21 @@ export default async function AdminSystemPage() {
     dbOk = false;
   }
 
-  const [rateLimitRows, emailRows, resetTokens] = dbOk
+  const [rateLimitRows, emailRows, linkedUsers, totalUsers] = dbOk
     ? await Promise.all([
         db.rateLimit.count(),
         db.emailLog.count(),
-        db.passwordResetToken.count({ where: { usedAt: null } }),
+        db.user.count({ where: { authId: { not: null } } }),
+        db.user.count(),
       ])
-    : [0, 0, 0];
+    : [0, 0, 0, 0];
 
   const env = {
     databaseUrl: process.env.DATABASE_URL,
     directUrl: process.env.DIRECT_URL,
-    sessionSecret: Boolean(process.env.SESSION_SECRET),
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    supabaseServiceKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
     resendKey: Boolean(process.env.RESEND_API_KEY),
     mailFrom: process.env.MAIL_FROM,
     cronSecret: Boolean(process.env.CRON_SECRET),
@@ -105,8 +108,17 @@ export default async function AdminSystemPage() {
             )}
             {row("Mail from", env.mailFrom ?? "onboarding@resend.dev (default)")}
             {row(
-              "Session secret",
-              <CheckBadge ok={env.sessionSecret} okLabel="set" failLabel="MISSING" />
+              "Supabase Auth",
+              <span className="flex items-center justify-end gap-2">
+                <span className="font-mono text-xs text-slate-500">
+                  {dbHost(env.supabaseUrl)}
+                </span>
+                <CheckBadge
+                  ok={env.supabaseAnonKey && env.supabaseServiceKey}
+                  okLabel="keys set"
+                  failLabel="KEYS MISSING"
+                />
+              </span>
             )}
             {row(
               "Cron secret",
@@ -121,7 +133,7 @@ export default async function AdminSystemPage() {
           <CardBody className="divide-y divide-slate-100 p-0">
             {row("Rate-limit buckets", rateLimitRows)}
             {row("Email log rows", emailRows)}
-            {row("Outstanding reset tokens", resetTokens)}
+            {row("Users linked to Supabase Auth", `${linkedUsers} / ${totalUsers}`)}
           </CardBody>
         </Card>
 

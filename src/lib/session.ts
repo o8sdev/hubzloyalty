@@ -1,11 +1,20 @@
-import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  claimsFromAuthUser,
+  getVerifiedAuthUser,
+  invalidateVerifiedAuthUser,
+  supabaseServer,
+} from "@/lib/supabase";
 
-export const SESSION_COOKIE = "lcrm_session";
-const SESSION_DAYS = 30;
+// ---------------------------------------------------------------------------
+// Session facade over Supabase Auth. The rest of the app keeps consuming the
+// same Session shape it always has; underneath, the caller's access token is
+// verified and the authorization claims are read from app_metadata (mirrored
+// there from the User profile — see src/lib/supabase.ts).
+// ---------------------------------------------------------------------------
 
 export type Session = {
+  /** Domain User.id (cuid) — NOT the auth.users UUID. */
   userId: string;
   // "" for platform-only accounts (platform admins without a business).
   businessId: string;
@@ -19,50 +28,23 @@ export type Session = {
   email: string;
 };
 
-function secretKey() {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET is not set");
-  return new TextEncoder().encode(secret);
-}
-
-export async function createSession(session: Session) {
-  const token = await new SignJWT({
-    businessId: session.businessId,
-    role: session.role,
-    platformAdmin: session.platformAdmin,
-    mustChangePassword: session.mustChangePassword,
-    name: session.name,
-    email: session.email,
-  })
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(session.userId)
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_DAYS}d`)
-    .sign(secretKey());
-
-  (await cookies()).set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * SESSION_DAYS,
-  });
-}
-
 export async function getSession(): Promise<Session | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secretKey());
-    if (!payload.sub || typeof payload.businessId !== "string") return null;
+    const user = await getVerifiedAuthUser();
+    if (!user) return null;
+    const claims = claimsFromAuthUser(user);
+    if (!claims) return null;
     return {
-      userId: payload.sub,
-      businessId: payload.businessId,
-      role: String(payload.role ?? "OWNER"),
-      platformAdmin: payload.platformAdmin === true,
-      mustChangePassword: payload.mustChangePassword === true,
-      name: String(payload.name ?? ""),
-      email: String(payload.email ?? ""),
+      userId: claims.profileId,
+      businessId: claims.businessId,
+      role: claims.role,
+      platformAdmin: claims.platformAdmin,
+      mustChangePassword: claims.mustChangePassword,
+      name:
+        typeof user.user_metadata?.name === "string"
+          ? user.user_metadata.name
+          : "",
+      email: user.email ?? "",
     };
   } catch {
     return null;
@@ -88,5 +70,7 @@ export async function requirePlatformAdmin(): Promise<Session> {
 }
 
 export async function destroySession() {
-  (await cookies()).delete(SESSION_COOKIE);
+  const supabase = await supabaseServer();
+  await supabase.auth.signOut();
+  invalidateVerifiedAuthUser();
 }

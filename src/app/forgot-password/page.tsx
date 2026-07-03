@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, Input, Label } from "@/components/ui";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
+  const linkExpired = searchParams.get("error") === "expired";
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +40,12 @@ export default function ForgotPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-md p-8">
         <h1 className="text-xl font-bold text-slate-900">Reset your password</h1>
+        {linkExpired && !sent ? (
+          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            That reset link was invalid or had expired — request a fresh one
+            below.
+          </p>
+        ) : null}
         {sent ? (
           <p className="mt-4 rounded-lg bg-green-50 px-3 py-3 text-sm text-green-800">
             If an account exists for <strong>{email}</strong>, a reset link is
@@ -78,5 +87,13 @@ export default function ForgotPasswordPage() {
         </p>
       </Card>
     </main>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense>
+      <ForgotPasswordForm />
+    </Suspense>
   );
 }

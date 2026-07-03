@@ -7,10 +7,22 @@
 // runs produce identical data.
 
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { createClient } from "@supabase/supabase-js";
 import { tierForVisits, POINTS_PER_VISIT } from "../src/lib/validation";
 
 const prisma = new PrismaClient();
+
+// Identities live in Supabase Auth; the seed manages them via the admin API.
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set`);
+  return value;
+}
+const supabaseAdmin = createClient(
+  requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+  requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEMO_SLUG = "demo-cafe";
@@ -97,6 +109,69 @@ const PRAISE_COMMENTS = [
 // Seed steps
 // ---------------------------------------------------------------------------
 
+/**
+ * Ensure a Supabase Auth identity exists for an email. Existing identities
+ * keep their password unless `password` is forced; metadata/claims are
+ * always refreshed by the caller afterwards. Returns the auth user id.
+ */
+async function ensureAuthUser(opts: {
+  email: string;
+  name: string;
+  password?: string;
+  forcePassword?: boolean;
+}): Promise<string> {
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email: opts.email,
+    password: opts.password,
+    email_confirm: true,
+    user_metadata: { name: opts.name },
+  });
+  if (!error && data.user) return data.user.id;
+
+  if (error && error.code === "email_exists") {
+    for (let page = 1; page <= 10; page++) {
+      const { data: list, error: listError } =
+        await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 });
+      if (listError) throw listError;
+      const hit = list.users.find(
+        (u) => u.email?.toLowerCase() === opts.email.toLowerCase()
+      );
+      if (hit) {
+        if (opts.forcePassword && opts.password) {
+          await supabaseAdmin.auth.admin.updateUserById(hit.id, {
+            password: opts.password,
+          });
+        }
+        return hit.id;
+      }
+      if (list.users.length < 100) break;
+    }
+  }
+  throw new Error(`ensureAuthUser failed for ${opts.email}: ${error?.message}`);
+}
+
+/** Mirror a profile's authorization facts into auth.users.app_metadata. */
+async function syncClaims(user: {
+  id: string;
+  authId: string | null;
+  businessId: string | null;
+  role: string;
+  isPlatformAdmin: boolean;
+  mustChangePassword: boolean;
+}): Promise<void> {
+  if (!user.authId) return;
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(user.authId, {
+    app_metadata: {
+      profileId: user.id,
+      businessId: user.businessId ?? "",
+      role: user.role,
+      platformAdmin: user.isPlatformAdmin,
+      mustChangePassword: user.mustChangePassword,
+    },
+  });
+  if (error) throw error;
+}
+
 async function resetDemoData(): Promise<void> {
   const existing = await prisma.business.findUnique({
     where: { slug: DEMO_SLUG },
@@ -106,8 +181,18 @@ async function resetDemoData(): Promise<void> {
     // Cascades remove customers, visits, reviews, rewards, campaigns.
     await prisma.business.delete({ where: { id: existing.id } });
   }
-  // User is onDelete: SetNull, so remove it explicitly if still around.
+  // User is onDelete: SetNull, so remove it explicitly if still around —
+  // profile and Supabase Auth identity both.
+  const demoUser = await prisma.user.findUnique({
+    where: { email: DEMO_EMAIL },
+    select: { authId: true },
+  });
   await prisma.user.deleteMany({ where: { email: DEMO_EMAIL } });
+  if (demoUser?.authId) {
+    await supabaseAdmin.auth.admin
+      .deleteUser(demoUser.authId)
+      .catch(() => {});
+  }
 }
 
 async function main(): Promise<void> {
@@ -130,21 +215,28 @@ async function main(): Promise<void> {
     },
   });
 
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
-  await prisma.user.create({
+  const demoAuthId = await ensureAuthUser({
+    email: DEMO_EMAIL,
+    name: "Demo Owner",
+    password: DEMO_PASSWORD,
+    forcePassword: true,
+  });
+  const demoOwner = await prisma.user.create({
     data: {
       email: DEMO_EMAIL,
-      passwordHash,
+      authId: demoAuthId,
       name: "Demo Owner",
       role: "OWNER",
       businessId: business.id,
     },
   });
+  await syncClaims(demoOwner);
 
   // --- Platform admin ---------------------------------------------------------
   // The systems-admin account for /admin. Credentials come from env so real
-  // deploys never ship a default password. Upsert keeps an existing admin's
-  // password when ADMIN_PASSWORD is unset.
+  // deploys never ship a default password. An existing admin's password is
+  // NEVER overwritten by the seed — change it via the app (or Supabase
+  // dashboard) instead.
   const adminEmail = process.env.ADMIN_EMAIL ?? "admin@loyaltycrm.test";
   const adminPassword = process.env.ADMIN_PASSWORD;
   const existingAdmin = await prisma.user.findUnique({
@@ -155,22 +247,24 @@ async function main(): Promise<void> {
       "ADMIN_PASSWORD must be set in .env to create the platform admin account"
     );
   }
+  const adminAuthId = await ensureAuthUser({
+    email: adminEmail,
+    name: "Platform Admin",
+    password: adminPassword,
+    forcePassword: false,
+  });
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
     create: {
       email: adminEmail,
-      passwordHash: await bcrypt.hash(adminPassword!, 10),
+      authId: adminAuthId,
       name: "Platform Admin",
       role: "ADMIN",
       isPlatformAdmin: true,
     },
-    update: {
-      isPlatformAdmin: true,
-      ...(adminPassword
-        ? { passwordHash: await bcrypt.hash(adminPassword, 10) }
-        : {}),
-    },
+    update: { isPlatformAdmin: true, authId: adminAuthId },
   });
+  await syncClaims(admin);
 
   // --- Customers ------------------------------------------------------------
   const customerCount = 30;
@@ -345,7 +439,9 @@ async function main(): Promise<void> {
   console.log(`  Email:    ${DEMO_EMAIL}`);
   console.log(`  Password: ${DEMO_PASSWORD}`);
   console.log("");
-  console.log(`Platform admin: ${admin.email} (password from ADMIN_PASSWORD in .env)`);
+  console.log(
+    `Platform admin: ${admin.email} (existing password kept; ADMIN_PASSWORD only used on first creation)`
+  );
 }
 
 main()

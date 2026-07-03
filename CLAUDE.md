@@ -2,7 +2,7 @@
 
 SaaS for cafés/restaurants: ungated QR review funnel + customer CRM + (later)
 loyalty & campaigns. Next.js 15 App Router, TS strict, Tailwind v4, Prisma 6,
-Supabase Postgres (project mmmsjhpdoljutekishht), jose JWT cookie sessions.
+Supabase Postgres + Supabase Auth (project mmmsjhpdoljutekishht).
 
 ## Commands
 - `npm run dev` / `npm run build`
@@ -32,6 +32,17 @@ Supabase Postgres (project mmmsjhpdoljutekishht), jose JWT cookie sessions.
 - Sessions: `requireSession()` in pages, `requireApiSession()` in API routes,
   `requirePlatformAdmin()` / `requireApiPlatformAdmin()` for /admin; validate
   bodies with `parseBody(req, zodSchema)` from `src/lib/http.ts`.
+- **Auth is Supabase Auth** (`src/lib/supabase.ts` + the session facade in
+  `src/lib/session.ts`): identities/credentials/reset emails live in
+  auth.users; the domain `User` row (linked by `authId`) owns tenancy facts
+  (businessId/role/isPlatformAdmin/mustChangePassword) and MIRRORS them into
+  `app_metadata` — any write to those fields must call `syncAuthClaims()`.
+  Creating/deleting users goes through `supabaseAdmin().auth.admin.*` with
+  compensation on failure; never store passwords in the domain DB. Public
+  signups are disabled project-side (`disable_signup`) — provisioning is the
+  only door. Session cookies are managed by `@supabase/ssr` (middleware
+  refreshes them); `getSession()` verifies via `getUser()` with a short
+  in-memory cache.
 - **Email** goes through `sendMail()` in `src/lib/mail.ts` (Resend REST,
   never throws, records EmailLog, DEV_LOGGED without RESEND_API_KEY). Slow
   work after a public response uses `after()` from next/server.

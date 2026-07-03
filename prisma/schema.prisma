@@ -55,10 +55,18 @@ model Business {
   campaigns Campaign[]
 }
 
+// Domain profile for an authenticated person. Identity (credentials, email
+// verification, sessions, reset emails) lives in Supabase Auth (auth.users);
+// authId links the two. Tenancy/authorization facts (businessId, role,
+// isPlatformAdmin, mustChangePassword) are owned HERE and mirrored into
+// auth.users.app_metadata so sessions carry them without a DB read — any
+// write to these fields must go through syncAuthClaims() (src/lib/supabase.ts).
 model User {
   id           String    @id @default(cuid())
+  // auth.users.id (UUID). Nullable only because rows are created before the
+  // auth user in some flows; enforced present by the application.
+  authId       String?   @unique
   email        String    @unique
-  passwordHash String
   name         String
   role         String    @default("OWNER") // OWNER | STAFF | ADMIN
   // Platform operator (systems admin): full access to /admin across all
@@ -72,22 +80,6 @@ model User {
   business     Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-
-  passwordResetTokens PasswordResetToken[]
-}
-
-// Single-use password reset tokens. Only a SHA-256 hash is stored; the raw
-// token exists solely inside the emailed link.
-model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  @@index([userId])
 }
 
 model Customer {

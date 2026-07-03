@@ -1,11 +1,19 @@
-import { createHash } from "node:crypto";
-import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { badRequest, json, parseBody, serverError } from "@/lib/http";
+import { badRequest, json, parseBody, serverError, unauthorized } from "@/lib/http";
 import { resetPasswordSchema } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
+import {
+  invalidateVerifiedAuthUser,
+  supabaseServer,
+  syncAuthClaims,
+} from "@/lib/supabase";
 
-/** PUBLIC endpoint. Exchanges a valid reset token for a new password. */
+/**
+ * Sets a new password for the CURRENT session — reached via the emailed
+ * recovery link (/auth/confirm established the session). Proving control of
+ * the email supersedes the one-time-password requirement, so a pending
+ * forced change is cleared too.
+ */
 export async function POST(req: Request) {
   const limited = await rateLimit({
     key: `auth:reset:${clientIp(req)}`,
@@ -16,40 +24,48 @@ export async function POST(req: Request) {
 
   const parsed = await parseBody(req, resetPasswordSchema);
   if (parsed.error) return parsed.error;
-  const { token, password } = parsed.data;
+  const { password } = parsed.data;
 
   try {
-    const tokenHash = createHash("sha256").update(token).digest("hex");
-    const record = await db.passwordResetToken.findUnique({
-      where: { tokenHash },
-    });
-    if (!record || record.usedAt || record.expiresAt < new Date()) {
+    const supabase = await supabaseServer();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
       return badRequest("This reset link is invalid or has expired");
     }
 
-    // Claim the token atomically (usedAt IS NULL compare-and-set) so a
-    // double-submitted form can't apply two different passwords.
-    const claimed = await db.passwordResetToken.updateMany({
-      where: { id: record.id, usedAt: null },
-      data: { usedAt: new Date() },
-    });
-    if (claimed.count !== 1) {
-      return badRequest("This reset link is invalid or has expired");
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      return badRequest(
+        error.message.includes("different")
+          ? "New password must be different from your current password"
+          : error.message
+      );
     }
 
-    // Proving control of the email supersedes the one-time-password
-    // requirement, so a pending forced change is cleared too.
-    await db.user.update({
-      where: { id: record.userId },
-      data: {
-        passwordHash: await bcrypt.hash(password, 10),
-        mustChangePassword: false,
-      },
-    });
+    // Clear a pending forced change on the profile + mirrored claims.
+    const profile = await db.user.findUnique({ where: { authId: user.id } });
+    if (profile && profile.mustChangePassword) {
+      const updated = await db.user.update({
+        where: { id: profile.id },
+        data: { mustChangePassword: false },
+      });
+      await syncAuthClaims(updated);
+    }
+
+    // Password change rotates sessions server-side; drop stale cache entries.
+    invalidateVerifiedAuthUser();
 
     return json({ ok: true });
   } catch (err) {
     console.error("password reset failed", err);
     return serverError();
   }
+}
+
+// Old clients may still probe with tokens; give them a clear answer.
+export async function GET() {
+  return unauthorized();
 }
