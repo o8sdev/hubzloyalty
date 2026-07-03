@@ -34,6 +34,18 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-03 — Session 8b (Mac): dashboard navigation speed
+- Tab switching was seconds-per-click (every nav re-queried Tokyo).
+  Measured after the fixes: **return-to-tab ~30-50ms** (was seconds), cold
+  tabs paint a skeleton at ~250ms while data streams.
+- Changes: router cache for dynamic pages (`staleTimes.dynamic: 60` —
+  mutations still bust via router.refresh()), `loading.tsx` skeletons for
+  /admin and the owner (app) shell, admin overview's 9 count queries
+  collapsed into ONE SQL round trip, session verification deduped
+  per-render with React cache(), dev server on Turbopack.
+- Cold-visit cost that remains is dev-only compile + Tokyo RTT — the
+  region move / prod deploy near the DB erases most of it.
+
 ### 2026-07-03 — Session 8 (Mac): AUTH MIGRATED TO SUPABASE AUTH
 - **Why**: user decision after the "reset email never arrives" pain — reset
   emails now actually deliver via Supabase's mailer (no Resend key needed

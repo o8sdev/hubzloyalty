@@ -16,34 +16,37 @@ export default async function AdminOverviewPage() {
   await requirePlatformAdmin();
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [
-    businessCount,
-    suspendedCount,
-    newDemoRequestCount,
-    userCount,
-    customerCount,
-    visitCount,
-    reviewCount,
-    reviewAgg7d,
-    openComplaints,
-    emailsSent7d,
-    recentBusinesses,
-    recentComplaints,
-  ] = await Promise.all([
-    db.business.count(),
-    db.business.count({ where: { suspendedAt: { not: null } } }),
-    db.demoRequest.count({ where: { status: "NEW" } }),
-    db.user.count(),
-    db.customer.count(),
-    db.visit.count(),
-    db.review.count(),
-    db.review.aggregate({
-      where: { createdAt: { gte: weekAgo } },
-      _count: true,
-      _avg: { rating: true },
-    }),
-    db.review.count({ where: { status: "NEW", rating: { lte: 3 } } }),
-    db.emailLog.count({ where: { createdAt: { gte: weekAgo } } }),
+
+  // The DB is far away, so round trips dominate: all nine scalar counts ride
+  // ONE query via subselects; only the two row-set lists stay separate.
+  type OverviewCounts = {
+    businesses: bigint;
+    suspended: bigint;
+    newDemoRequests: bigint;
+    users: bigint;
+    customers: bigint;
+    visits: bigint;
+    reviews: bigint;
+    reviews7d: bigint;
+    avgRating7d: number | null;
+    openComplaints: bigint;
+    emails7d: bigint;
+  };
+  const [countRows, recentBusinesses, recentComplaints] = await Promise.all([
+    db.$queryRaw<OverviewCounts[]>`
+      SELECT
+        (SELECT count(*) FROM "Business")                                        AS "businesses",
+        (SELECT count(*) FROM "Business" WHERE "suspendedAt" IS NOT NULL)        AS "suspended",
+        (SELECT count(*) FROM "DemoRequest" WHERE status = 'NEW')                AS "newDemoRequests",
+        (SELECT count(*) FROM "User")                                            AS "users",
+        (SELECT count(*) FROM "Customer")                                        AS "customers",
+        (SELECT count(*) FROM "Visit")                                           AS "visits",
+        (SELECT count(*) FROM "Review")                                          AS "reviews",
+        (SELECT count(*) FROM "Review" WHERE "createdAt" >= ${weekAgo})          AS "reviews7d",
+        (SELECT avg(rating)::float8 FROM "Review" WHERE "createdAt" >= ${weekAgo}) AS "avgRating7d",
+        (SELECT count(*) FROM "Review" WHERE status = 'NEW' AND rating <= 3)     AS "openComplaints",
+        (SELECT count(*) FROM "EmailLog" WHERE "createdAt" >= ${weekAgo})        AS "emails7d"
+    `,
     db.business.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -69,6 +72,20 @@ export default async function AdminOverviewPage() {
       },
     }),
   ]);
+  const counts = countRows[0];
+  const businessCount = Number(counts.businesses);
+  const suspendedCount = Number(counts.suspended);
+  const newDemoRequestCount = Number(counts.newDemoRequests);
+  const userCount = Number(counts.users);
+  const customerCount = Number(counts.customers);
+  const visitCount = Number(counts.visits);
+  const reviewCount = Number(counts.reviews);
+  const reviewAgg7d = {
+    _count: Number(counts.reviews7d),
+    _avg: { rating: counts.avgRating7d },
+  };
+  const openComplaints = Number(counts.openComplaints);
+  const emailsSent7d = Number(counts.emails7d);
 
   return (
     <div>

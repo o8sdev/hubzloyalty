@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import {
@@ -139,34 +140,38 @@ const VERIFY_TTL_MS = 5 * 60 * 1000;
 const VERIFY_CACHE_MAX = 500;
 const verifiedTokens = new Map<string, { user: SupabaseAuthUser; expires: number }>();
 
-export async function getVerifiedAuthUser(): Promise<SupabaseAuthUser | null> {
-  const supabase = await supabaseServer();
-  // Cheap cookie read (no network, unverified) just to key the cache.
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) return null;
+// React cache(): layout + page + API guards within ONE render pass share a
+// single execution; the token map above carries verification across requests.
+export const getVerifiedAuthUser = cache(
+  async (): Promise<SupabaseAuthUser | null> => {
+    const supabase = await supabaseServer();
+    // Cheap cookie read (no network, unverified) just to key the cache.
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return null;
 
-  const cached = verifiedTokens.get(token);
-  if (cached && cached.expires > Date.now()) return cached.user;
+    const cached = verifiedTokens.get(token);
+    if (cached && cached.expires > Date.now()) return cached.user;
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) {
-    verifiedTokens.delete(token);
-    return null;
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error || !user) {
+      verifiedTokens.delete(token);
+      return null;
+    }
+
+    if (verifiedTokens.size >= VERIFY_CACHE_MAX) {
+      const oldest = verifiedTokens.keys().next().value;
+      if (oldest) verifiedTokens.delete(oldest);
+    }
+    verifiedTokens.set(token, { user, expires: Date.now() + VERIFY_TTL_MS });
+    return user;
   }
-
-  if (verifiedTokens.size >= VERIFY_CACHE_MAX) {
-    const oldest = verifiedTokens.keys().next().value;
-    if (oldest) verifiedTokens.delete(oldest);
-  }
-  verifiedTokens.set(token, { user, expires: Date.now() + VERIFY_TTL_MS });
-  return user;
-}
+);
 
 /** Drop a token from the verified cache (call on password change/sign-out). */
 export function invalidateVerifiedAuthUser(token?: string) {
