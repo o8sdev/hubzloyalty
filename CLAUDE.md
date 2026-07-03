@@ -52,6 +52,11 @@ Supabase Postgres + Supabase Auth (project ghubhzbvkfjhtywvtvuj, eu-west-1).
 - UI primitives come from `src/components/ui.tsx`; brand palette classes
   `bg-brand-700` etc. (defined in `src/app/globals.css` @theme). The /admin
   shell is dark (slate-900) on purpose — don't blend it with the tenant app.
+- **One typeface product-wide: Space Grotesk** (`--font-app`, set by next/font
+  in `layout.tsx`; every font role — body, `.f-display`, `.f-mono`, and
+  Tailwind `--font-sans`/`--font-mono`/`--font-serif` — maps to it in
+  globals.css). Don't reintroduce Fraunces/Schibsted/Spline; keep the café-print
+  colors/grain, just not the old fonts.
 - Next 15: `params`/`searchParams` are Promises — await them.
 - **Loyalty economics are per-business** (Business.pointsPerVisit /
   silverThreshold / goldThreshold / vipThreshold). Never hardcode tier math:

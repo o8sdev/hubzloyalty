@@ -30,6 +30,13 @@
   --color-moss-dark: #173627;
   --color-gold: #e8a83a;
   --color-cream: #fbf7ee;
+
+  /* One typeface across the whole product. --font-app is Space Grotesk, set by
+     next/font in layout.tsx; mapping every Tailwind font role to it means
+     font-sans / font-mono / font-serif utilities all render Space Grotesk. */
+  --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-app), ui-monospace, monospace;
+  --font-serif: var(--font-app), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -38,8 +45,9 @@
 
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  /* Owner app + admin base font. Marketing/auth (.mkt) override this below. */
+  font-family: var(--font-app), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ===========================================================================
@@ -114,18 +122,19 @@ body {
    ======================================================================== */
 
 .mkt {
-  font-family: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-app), ui-sans-serif, system-ui, sans-serif;
   background-color: var(--color-paper);
   color: var(--color-ink);
   overflow-x: clip;
 }
 
+/* Display headings everywhere use the app font (Space Grotesk). */
 .f-display {
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-app), ui-sans-serif, system-ui, sans-serif;
 }
 
 .f-mono {
-  font-family: var(--font-mono-mkt), ui-monospace, monospace;
+  font-family: var(--font-app), ui-monospace, monospace;
 }
 
 .mkt ::selection {
@@ -147,7 +156,7 @@ body {
 
 /* Eyebrow ticket label */
 .mkt-eyebrow {
-  font-family: var(--font-mono-mkt), monospace;
+  font-family: var(--font-app), monospace;
   font-size: 0.6875rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;

@@ -19,10 +19,12 @@ Demo owner login: `demo@loyaltycrm.test` / `demo1234` · guest page: `/r/demo-ca
 
 **Where things are:** strategy/market docs in `docs/00`–`04`, agent
 conventions in `CLAUDE.md`. Stack: Next.js 15, TypeScript, Tailwind v4,
-Prisma 6, SQLite dev (Postgres for prod later), jose JWT sessions.
+Prisma 6, Supabase Postgres + Supabase Auth (project `ghubhzbvkfjhtywvtvuj`,
+eu-west-1). One typeface product-wide: **Space Grotesk** (`--font-app`).
 
-**Roadmap position:** Phases 1 AND 2 are done (plus a platform-admin panel
-at `/admin`). The only Phase 2 item left is the first Vercel deploy. Phases
+**Roadmap position:** Phases 1 & 2 done, plus the platform admin panel,
+invite-only onboarding, staff-confirmed check-ins, welcome rewards, and an
+installable PWA. Only Phase 2 item left is the first Vercel deploy. Phases
 and their build triggers: `docs/04-roadmap.md`.
 
 **Onboarding is INVITE-ONLY** (as of Session 5): no self-registration.
@@ -33,6 +35,31 @@ owners set their own password at first login.
 ---
 
 ## Session log (newest first)
+
+### 2026-07-03 — Session 11 (Windows): universal Space Grotesk font + live-DB reset
+- **Fixed the pulled build error** (`Can't resolve '@supabase/ssr'`): stale
+  node_modules after the Session 7–10 pull. `npm install` pulled the Supabase
+  packages (jose/bcrypt already dropped by the auth migration).
+- **The whole product is now ONE typeface — Space Grotesk.** Replaced the
+  café-print type system (Schibsted body + Fraunces serif display + Spline
+  mono) everywhere: landing, about, auth pages, owner app, admin. Wired via
+  `--font-app` + Tailwind `--font-sans`/`--font-mono`/`--font-serif` theme
+  tokens in globals.css; `.f-display`/`.f-mono`/`.mkt`/`.mkt-eyebrow` all map to
+  it; removed the three now-unused next/font imports (lighter pages). Café-print
+  COLORS / layout / grain untouched — only the typeface changed. Build passes.
+  (Not browser-verified on this device — no `.env` to run the app; see it on Mac.)
+  User first chose it app-only, then asked for it product-wide. To revert to a
+  serif-display accent later: give `.f-display` its own font again.
+- **Wiped ALL seeded data from the LIVE eu-west-1 DB** for manual testing (user
+  request). Deleted the demo business + 39 customers / 388 visits / 60 reviews /
+  3 check-ins / 5 reward claims / 3 demo requests / 2 email logs, and the demo
+  owner (`demo@loyaltycrm.test`) from both `public.User` and `auth.users`.
+  PRESERVED the platform admin `rhlhabibli@gmail.com` (both tables).
+  ⚠ The shared DB now has NO demo data — `demo@loyaltycrm.test` / demo1234 no
+  longer works, and `/r/demo-cafe` 404s. Do NOT run `npm run db:seed` against
+  it (recreates the demo AND resets the admin password from ADMIN_EMAIL/PASSWORD).
+- Windows device still lacks the eu-west-1 `.env` (blocks running the app +
+  browser verification here); copy it from the Mac to run locally.
 
 ### 2026-07-03 — Session 10 (Mac): STAFF-CONFIRMED CHECK-INS + PWA
 - **Big semantic change (user decision after a long verification-design

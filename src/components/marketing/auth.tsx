@@ -3,7 +3,7 @@ import Link from "next/link";
 // ---------------------------------------------------------------------------
 // Shared café-print auth surface: the login / forgot / reset / set-password
 // pages all render inside AuthShell so the whole entry experience matches the
-// marketing site (paper, espresso ink, ember accent, Fraunces display).
+// marketing site (paper, espresso ink, ember accent, Space Grotesk type).
 // ---------------------------------------------------------------------------
 
 /** Form controls styled for the .mkt marketing surface (paper/ink palette). */
