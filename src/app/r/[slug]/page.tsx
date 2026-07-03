@@ -21,6 +21,7 @@ export default async function PublicReviewPage({
       logoUrl: true,
       googleReviewUrl: true,
       suspendedAt: true,
+      askTableNumber: true,
     },
   });
   if (!business || business.suspendedAt) notFound();
@@ -51,6 +52,7 @@ export default async function PublicReviewPage({
           slug={slug}
           businessName={business.name}
           googleReviewUrl={business.googleReviewUrl}
+          askTableNumber={business.askTableNumber}
         />
       </div>
 

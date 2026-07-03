@@ -14,7 +14,8 @@ import {
   TierBadge,
 } from "@/components/ui";
 import { Counter } from "@/components/marketing/motion";
-import { RedeemWidget } from "./redeem-widget";
+import { CounterConsole } from "@/components/counter-console";
+import { PendingCheckins } from "@/components/pending-checkins";
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -253,17 +254,32 @@ export default async function DashboardPage() {
         </CardBody>
       </Card>
 
-      {business?.welcomeRewardEnabled ? (
-        <Card className="mt-6">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card>
           <CardHeader
-            title="Redeem a welcome reward"
-            description={`Guest shows a code, you check it, hand over the gift. ${pendingClaims} waiting · ${redeemedClaims30d} redeemed in the last 30 days.`}
+            title="Counter — confirm a code"
+            description={`Check-ins and welcome gifts. ${pendingClaims} gift${pendingClaims === 1 ? "" : "s"} waiting · ${redeemedClaims30d} redeemed in 30 days.`}
+            action={
+              <LinkButton href="/counter" variant="secondary" size="sm">
+                Full screen
+              </LinkButton>
+            }
           />
           <CardBody>
-            <RedeemWidget />
+            <CounterConsole />
           </CardBody>
         </Card>
-      ) : null}
+
+        <Card>
+          <CardHeader
+            title="Waiting to be confirmed"
+            description="Guests in the room right now — points credit on your tap"
+          />
+          <CardBody>
+            <PendingCheckins />
+          </CardBody>
+        </Card>
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>

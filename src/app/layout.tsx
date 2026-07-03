@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Schibsted_Grotesk, Spline_Sans_Mono } from "next/font/google";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 // Marketing typography. Exposed as CSS variables so the owner app keeps its
@@ -25,6 +26,21 @@ export const metadata: Metadata = {
   title: "LoyaltyCRM — Customer growth for cafés & restaurants",
   description:
     "Collect more Google reviews, intercept complaints before they go public, and build a customer database that brings guests back.",
+  appleWebApp: {
+    capable: true,
+    title: "LoyaltyCRM",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#d4551e",
+  viewportFit: "cover" as const,
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -35,7 +51,10 @@ export default function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${schibsted.variable} ${splineMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   );
 }

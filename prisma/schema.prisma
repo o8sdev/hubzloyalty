@@ -47,6 +47,13 @@ model Business {
   welcomeRewardText       String? // e.g. "A free espresso — on us"
   welcomeRewardExpiryDays Int     @default(14)
 
+  // Visit verification policy: points credit ONLY when staff confirm a
+  // check-in code (human approval on every earning visit). Cooldown/cap
+  // bound how often a guest can even mint a code; feedback is never gated.
+  earnCooldownHours Int     @default(6) // 0 = no cooldown
+  maxEarnPerDay     Int     @default(2)
+  askTableNumber    Boolean @default(false) // waiter venues: capture table #
+
   // Set by a platform admin to suspend the business: blocks member logins
   // and returns 404 on the public funnel. Null = active.
   suspendedAt DateTime?
@@ -61,6 +68,7 @@ model Business {
   rewards      Reward[]
   campaigns    Campaign[]
   rewardClaims RewardClaim[]
+  checkins     Checkin[]
 }
 
 // Domain profile for an authenticated person. Identity (credentials, email
@@ -115,6 +123,7 @@ model Customer {
   reviews      Review[]
   redemptions  Redemption[]
   rewardClaims RewardClaim[]
+  checkins     Checkin[]
 
   @@index([businessId, lastVisitAt])
   @@index([businessId, phone])
@@ -274,6 +283,30 @@ model RewardClaim {
   // One welcome reward per customer, guaranteed at the schema level.
   @@unique([customerId, kind])
   @@index([businessId, status, createdAt])
+}
+
+// A pending visit awaiting human approval. The funnel mints one per earning
+// scan (subject to the business's cooldown/cap); staff confirm the guest's
+// code at the till, at the table, or from the pending queue — confirmation
+// is what creates the Visit and credits points. PENDING entries expire
+// (derived from expiresAt at read time — no cron flips statuses).
+model Checkin {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reviewId   String?  @unique // the funnel completion that minted it
+  code       String   @unique // short bearer code, stored normalized
+  tableNumber String? // waiter venues (self-reported, human-verified)
+  status     String   @default("PENDING") // PENDING | CONFIRMED
+  confirmedByUserId String?
+  confirmedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, status, createdAt])
+  @@index([customerId, status])
 }
 
 // Fixed-window rate limiting for public endpoints. One row per (route, ip)

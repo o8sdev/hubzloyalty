@@ -12,6 +12,8 @@ import { SettingsForm } from "./settings-form";
 import { LoyaltyForm } from "./loyalty-form";
 import { NotificationsForm } from "./notifications-form";
 import { WelcomeRewardForm } from "./welcome-reward-form";
+import { VisitVerificationForm } from "./visit-verification-form";
+import { TeamCard } from "./team-card";
 import { ChangePasswordForm } from "@/components/change-password-form";
 
 type SocialLinks = { instagram?: string; facebook?: string; tiktok?: string };
@@ -37,10 +39,22 @@ function parseSocialLinks(raw: string | null): SocialLinks {
 
 export default async function SettingsPage() {
   const session = await requireSession();
-  const business = await db.business.findUnique({
-    where: { id: session.businessId },
-  });
+  const [business, members] = await Promise.all([
+    db.business.findUnique({
+      where: { id: session.businessId },
+    }),
+    db.user.findMany({
+      where: { businessId: session.businessId },
+      orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true, email: true, role: true },
+    }),
+  ]);
   if (!business) notFound();
+
+  const teamMembers = members.map((m) => ({
+    ...m,
+    isSelf: m.id === session.userId,
+  }));
 
   const social = parseSocialLinks(business.socialLinks);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -94,6 +108,33 @@ export default async function SettingsPage() {
                 vipThreshold: business.vipThreshold,
               }}
             />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Check-in rules"
+            description="Points credit only when you or your staff confirm a guest's code — these rules bound how often codes can be created."
+          />
+          <CardBody>
+            <VisitVerificationForm
+              canEdit={canEdit}
+              initial={{
+                earnCooldownHours: business.earnCooldownHours,
+                maxEarnPerDay: business.maxEarnPerDay,
+                askTableNumber: business.askTableNumber,
+              }}
+            />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Team"
+            description="Who can confirm guest codes at the counter."
+          />
+          <CardBody>
+            <TeamCard canEdit={canEdit} members={teamMembers} />
           </CardBody>
         </Card>
 

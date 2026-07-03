@@ -136,6 +136,16 @@ const businessUpdateFields = z.object({
     .optional()
     .or(z.literal("").transform(() => null)),
   welcomeRewardExpiryDays: z.number().int().min(1).max(365).optional(),
+  // Visit verification policy (staff-confirmed check-ins).
+  earnCooldownHours: z.number().int().min(0).max(72).optional(),
+  maxEarnPerDay: z.number().int().min(1).max(10).optional(),
+  askTableNumber: z.boolean().optional(),
+});
+
+/** Owner invites a staff member (OTP provisioning, like admin onboarding). */
+export const teamInviteSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().toLowerCase().email(),
 });
 
 export const businessUpdateSchema = businessUpdateFields.refine(
@@ -217,6 +227,9 @@ export const publicReviewCreateSchema = z.object({
 export const publicReviewDetailsSchema = z.object({
   // Honeypot (see publicReviewCreateSchema).
   website: z.string().max(200).optional(),
+  // Waiter venues: self-reported table number, verified by the human who
+  // confirms the check-in.
+  tableNumber: optionalTrimmed(10),
   comment: optionalTrimmed(2000),
   clickedGoogle: z.boolean().optional(),
   customer: z

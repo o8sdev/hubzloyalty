@@ -114,14 +114,30 @@ carrying a 6-char unambiguous bearer code with expiry.
 | --- | --- | --- |
 | — | (grant) | happens inside `PATCH /api/public/reviews/:id` when a NEW customer is created and the business enabled the reward; response gains `welcomeReward: { code, rewardText, expiresAt }` |
 | GET | `/api/public/claims/:code` | PUBLIC, rate-limited 30/h/IP. `{ status: PENDING\|REDEEMED\|EXPIRED }` and nothing else — the code is the bearer secret; used by the guest's device to stop re-showing dead codes |
-| GET | `/api/rewards/claims/:code` | staff lookup (session, business-scoped): reward text, status, guest name, expiry. Input normalized (case/dashes) |
-| POST | `/api/rewards/claims/:code/redeem` | atomic PENDING→REDEEMED compare-and-set (records who/when); "Already redeemed" / "expired" errors otherwise |
+| GET | `/api/counter/codes/:code` | unified staff lookup (any member role, business-scoped): resolves EITHER a gift or a check-in, normalized input |
+| POST | `/api/counter/codes/:code/confirm` | one tap does the right thing: CHECKIN → confirm + credit visit/points; GIFT → redeem + ride-along confirm of the same guest's pending check-in (first visits show one code). Atomic, records who/when |
+| GET | `/api/counter/pending` | live queue of unexpired PENDING check-ins (name, table, age, code) for waiter venues |
 
 Repeat visits: same contact info → the funnel matches the existing customer
 (visit/points/tier accrue, review links) and grants nothing; the guest's
 device remembers them locally (localStorage per slug) for one-tap check-ins
 and re-shows an unredeemed code. The server never discloses whether contact
 info matched.
+
+## Check-ins (staff-confirmed visits)
+
+POINTS NEVER CREDIT AUTOMATICALLY. Completing the funnel mints a short-lived
+check-in code (2h TTL) — `PATCH /api/public/reviews/:id` response carries
+`earnStatus: code|cooldown|capped` and `checkin: { code, expiresAt,
+tableNumber }`. A staff member confirming that code (counter widget, the
+/counter pocket screen, or the pending queue) is what creates the Visit and
+credits points + tier. Minting is bounded per business by
+`earnCooldownHours` (vs last CONFIRMED) and `maxEarnPerDay` (confirmed +
+pending today); re-scans re-show the same pending code instead of minting
+duplicates; feedback itself is never gated. `askTableNumber` adds a table
+field for waiter venues. Owner/admin invite STAFF via
+`POST /api/business/team` (OTP provisioning, `DELETE /api/business/team/:id`
+to remove; owners not removable here, self-removal blocked).
 
 ## Cron
 

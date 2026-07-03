@@ -34,6 +34,45 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-03 — Session 10 (Mac): STAFF-CONFIRMED CHECK-INS + PWA
+- **Big semantic change (user decision after a long verification-design
+  discussion): points NEVER credit automatically.** Completing the funnel
+  now mints a short-lived (2h) check-in code; a HUMAN confirming it is what
+  creates the Visit and credits points/tier. First visits keep showing ONE
+  code — the welcome gift — and confirming the gift also confirms the visit
+  (ride-along in the unified confirm endpoint). Feedback is never gated.
+- **Owner-set minting bounds** (Settings → Check-in rules): earnCooldownHours
+  (vs last CONFIRMED), maxEarnPerDay (confirmed+pending), askTableNumber for
+  waiter venues. Re-scans re-show the SAME pending code (idempotent — no
+  duplicate mints). Verified: couch replay after confirmation → "cooldown",
+  no code, no points.
+- **Two confirmation surfaces**: unified counter console (dashboard card +
+  new pocket `/counter` screen, big touch targets) that resolves ANY code
+  (gift or check-in) with one confirm tap; and a live **pending queue**
+  ("T12 · Nino · 4 min ago", 30s polling) for waiter venues. New nav item
+  Counter. Old /api/rewards/claims* endpoints + redeem widget replaced by
+  /api/counter/codes/[code](+/confirm) + /api/counter/pending.
+- **Team management** (Settings → Team): owners invite STAFF with the OTP
+  pattern (auth user + forced password change + claims), remove staff;
+  staff can confirm codes but not change settings. Verified E2E: invite →
+  OTP login → forced change → /counter works.
+- **PWA layer**: manifest (ember theme, /dashboard start, /counter
+  shortcut), generated icons (scripts/generate-icons.mjs, committed),
+  apple-touch/viewport-fit metas, minimal service worker (offline page
+  only, prod-only registration), install hint on /counter (Android prompt /
+  iOS share tip). Web-push deferred to the native/Expo track.
+- Schema: Checkin table (+RLS) + Business.{earnCooldownHours, maxEarnPerDay,
+  askTableNumber}; migration `staff_confirmed_checkins` applied live.
+- Verified E2E in browser: scan mints code w/o points → queue shows table
+  row → confirm credits (2→3 visits, 20→30 pts) → double-confirm rejected →
+  cooldown blocks re-mint → first-timer gift confirm credits visit #1 →
+  staff flow → manifest/icons live. Build 51 routes.
+- **Next (agreed direction)**: NFC tap-to-verify (NTAG 424) as the
+  zero-human presence tier when stickers arrive from AliExpress (user is
+  ordering: NTAG 424 DNA stickers + ACR122U reader, ~$80); then guest
+  accounts (email OTP) → wallet → rewards catalog → directory per the
+  4-stage plan; Expo native app after PWA proves the counter workflow.
+
 ### 2026-07-03 — Session 9b (Mac): owner app redesign + live guests explorer
 - **The owner app now wears the café-print identity** (user-scoped: platform
   /admin deliberately untouched apart from inheriting the accent).

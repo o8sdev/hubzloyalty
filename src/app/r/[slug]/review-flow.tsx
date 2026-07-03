@@ -24,6 +24,14 @@ type WelcomeReward = {
   expiresAt: string | null;
 };
 
+type CheckinTicket = {
+  code: string;
+  expiresAt: string;
+  tableNumber: string | null;
+};
+
+type EarnStatus = "code" | "cooldown" | "capped" | "none";
+
 /**
  * Device-local memory of a completed funnel at this business. Enables
  * one-tap repeat check-ins and resurfaces an unredeemed reward code —
@@ -78,10 +86,12 @@ export function ReviewFlow({
   slug,
   businessName,
   googleReviewUrl,
+  askTableNumber = false,
 }: {
   slug: string;
   businessName: string;
   googleReviewUrl: string | null;
+  askTableNumber?: boolean;
 }) {
   const [step, setStep] = useState<Step>("rate");
   const [rating, setRating] = useState(0);
@@ -109,6 +119,10 @@ export function ReviewFlow({
 
   // Welcome reward granted on THIS visit (first-time completers only).
   const [welcomeReward, setWelcomeReward] = useState<WelcomeReward | null>(null);
+  // Check-in awaiting staff confirmation (points credit on their tap).
+  const [checkinTicket, setCheckinTicket] = useState<CheckinTicket | null>(null);
+  const [earnStatus, setEarnStatus] = useState<EarnStatus>("none");
+  const [tableNumber, setTableNumber] = useState("");
   // Device memory: this phone completed the funnel here before. Purely
   // device-local — the server never discloses whether contact info matched.
   const [remembered, setRemembered] = useState<GuestMemory | null>(null);
@@ -153,7 +167,12 @@ export function ReviewFlow({
 
   async function patchReview(
     body: Record<string, unknown>
-  ): Promise<{ ok: boolean; welcomeReward?: WelcomeReward }> {
+  ): Promise<{
+    ok: boolean;
+    welcomeReward?: WelcomeReward;
+    checkin?: CheckinTicket;
+    earnStatus?: EarnStatus;
+  }> {
     if (!reviewId) return { ok: false };
     try {
       const res = await fetch(`/api/public/reviews/${reviewId}`, {
@@ -163,8 +182,15 @@ export function ReviewFlow({
       });
       const data = (await res.json().catch(() => ({}))) as {
         welcomeReward?: WelcomeReward;
+        checkin?: CheckinTicket;
+        earnStatus?: EarnStatus;
       };
-      return { ok: res.ok, welcomeReward: data.welcomeReward };
+      return {
+        ok: res.ok,
+        welcomeReward: data.welcomeReward,
+        checkin: data.checkin,
+        earnStatus: data.earnStatus,
+      };
     } catch {
       return { ok: false };
     }
@@ -232,6 +258,7 @@ export function ReviewFlow({
     setSavingContact(true);
     setError(null);
     const result = await patchReview({
+      tableNumber: tableNumber.trim() || undefined,
       customer: {
         firstName: firstName.trim(),
         phone: phone.trim() || undefined,
@@ -246,6 +273,8 @@ export function ReviewFlow({
       return;
     }
     if (result.welcomeReward) setWelcomeReward(result.welcomeReward);
+    if (result.checkin) setCheckinTicket(result.checkin);
+    setEarnStatus(result.earnStatus ?? "none");
 
     // Remember this guest on-device: prefills the next check-in and keeps
     // their reward code recoverable until it's redeemed or expires.
@@ -442,6 +471,22 @@ export function ReviewFlow({
                   placeholder="+1 555 000 1234"
                 />
               </div>
+              {askTableNumber ? (
+                <div>
+                  <Label htmlFor="rf-table">Table number</Label>
+                  <Input
+                    id="rf-table"
+                    maxLength={10}
+                    inputMode="numeric"
+                    value={tableNumber}
+                    onChange={(e) => setTableNumber(e.target.value)}
+                    placeholder="e.g. 12"
+                  />
+                  <p className="mt-1 text-xs text-slate-400">
+                    So staff can confirm your check-in at the table.
+                  </p>
+                </div>
+              ) : null}
               {showExtra ? (
                 <>
                   <div>
@@ -541,13 +586,18 @@ export function ReviewFlow({
           <p className="text-lg font-semibold text-slate-900">
             {complaint && contactSaved
               ? `Thank you — ${businessName} will reach out to make this right.`
-              : returning && contactSaved
-                ? "Welcome back — visit recorded!"
-                : "You're all set — see you soon!"}
+              : contactSaved && earnStatus === "cooldown"
+                ? "Welcome back — this visit was already counted today ✓"
+                : contactSaved && earnStatus === "capped"
+                  ? "You've hit today's check-in limit — see you tomorrow!"
+                  : returning && contactSaved
+                    ? "Welcome back!"
+                    : "You're all set — see you soon!"}
           </p>
 
           {/* Welcome reward ticket — granted for JOINING THE LIST (first
-              completion), identical at every rating; never for the review. */}
+              completion), identical at every rating; never for the review.
+              Confirming this ONE code at the counter also counts the visit. */}
           {welcomeReward ? (
             <div className="w-full max-w-xs rounded-2xl border-2 border-dashed border-amber-400 bg-amber-50 px-5 py-5 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700">
@@ -560,13 +610,33 @@ export function ReviewFlow({
                 {fmtCode(welcomeReward.code)}
               </p>
               <p className="mt-2 text-xs text-slate-500">
-                Show this code at the counter to claim.
+                Show this code when you order or pay — you&apos;ll get the gift
+                and your first visit counts.
                 {welcomeReward.expiresAt
                   ? ` Valid until ${new Date(welcomeReward.expiresAt).toLocaleDateString()}.`
                   : ""}
               </p>
               <p className="mt-1 text-[11px] text-slate-400">
                 We&apos;ve saved it on this device too.
+              </p>
+            </div>
+          ) : checkinTicket ? (
+            <div className="w-full max-w-xs rounded-2xl border-2 border-dashed border-brand-400 bg-brand-50 px-5 py-5 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-800">
+                ✓ Your check-in code
+              </p>
+              <p className="mt-3 font-mono text-3xl font-bold tracking-[0.12em] text-slate-900">
+                {fmtCode(checkinTicket.code)}
+              </p>
+              <p className="mt-2 text-xs text-slate-600">
+                Show this when you order or pay
+                {checkinTicket.tableNumber
+                  ? ` (table ${checkinTicket.tableNumber})`
+                  : ""}{" "}
+                — your visit and points count when staff confirm it.
+              </p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Valid for 2 hours. Re-scan anytime to see it again.
               </p>
             </div>
           ) : remembered?.code ? (
