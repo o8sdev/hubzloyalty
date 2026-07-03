@@ -2,7 +2,7 @@
 
 SaaS for cafés/restaurants: ungated QR review funnel + customer CRM + (later)
 loyalty & campaigns. Next.js 15 App Router, TS strict, Tailwind v4, Prisma 6,
-Supabase Postgres + Supabase Auth (project mmmsjhpdoljutekishht).
+Supabase Postgres + Supabase Auth (project ghubhzbvkfjhtywvtvuj, eu-west-1).
 
 ## Commands
 - `npm run dev` / `npm run build`
@@ -61,12 +61,15 @@ Supabase Postgres + Supabase Auth (project mmmsjhpdoljutekishht).
 - **Suspension:** `Business.suspendedAt` gates logins, the public funnel page,
   and the public review API — check it in any new public/business-facing path.
 
-## Dev environment gotcha
-The Supabase project lives in ap-northeast-1 (Tokyo); from a distant dev
-machine a warm query is ~1.8s and a new connection ~6s. `.env` therefore uses
-`connection_limit=10&pool_timeout=60&connect_timeout=30` on DATABASE_URL.
-Avoid huge `Promise.all` query bursts; on Vercel, deploy functions near the
-DB region (hnd1/icn1) or move the Supabase project closer.
+## Dev environment notes
+The Supabase project lives in eu-west-1 (Ireland; the original Tokyo project
+was recreated there 2026-07-03 — old ref mmmsjhpdoljutekishht is dead).
+Round trips still dominate from a remote dev machine, so: keep multi-step
+flows to few statements, prefer single-statement SQL over read-then-write
+pairs, and keep `connection_limit=10&pool_timeout=60&connect_timeout=30` on
+DATABASE_URL. On Vercel, pin functions to the DB region (dub1/lhr1).
+Interactive `db.$transaction` calls need explicit generous `timeout` —
+Prisma's 5s default assumes a next-door DB.
 
 ## Session hygiene
 Update **CATCHUP.md** (repo root) at the end of every working session: date,

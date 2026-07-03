@@ -34,6 +34,19 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-03 — Session 8d (Mac): SUPABASE PROJECT MOVED TO IRELAND
+- **User recreated the Supabase project in eu-west-1** (new ref
+  `ghubhzbvkfjhtywvtvuj`) and deleted the Tokyo one. This machine rewired
+  everything: new DB password + pooler connection strings, new anon/service
+  keys (all in Mac `.env` — Windows must copy it AGAIN), auth config
+  re-applied (disable_signup, site_url localhost, min length 8), all 5
+  migrations deployed, seed run (fresh auth users: demo/demo1234 and the
+  admin with the password the user chose in chat), MCP `supabase-hubz`
+  re-pointed at the new ref (takes effect next session).
+- Measured effect vs Tokyo: guest contact save 8.8s → 2.6s warm; single
+  API round trip ~1s from this machine. Vercel region for deploy: dub1/lhr1.
+- ⚠ Anything still referencing `mmmsjhpdoljutekishht` is dead.
+
 ### 2026-07-03 — Session 8c (Mac): funnel save bug + complaint callback capture
 - **Bug (user-reported): "Could not save your details" on the guest funnel.**
   Root cause: the contact-capture transaction (~7 round trips) exceeded
