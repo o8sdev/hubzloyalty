@@ -116,6 +116,13 @@ owners set their own password at first login.
   lockfile; builds went 8.7s → 1.6s.
 - Verified in browser: desktop + mobile viewports, hamburger menu, star demo
   interaction, counters, production build (40 pages).
+- **Rate limiting now enforces only in production** (`RATE_LIMIT_ENABLED`
+  overrides either way): local dev shares one IP bucket, so manual testing
+  tripped the 5/h register cap and blocked account creation. Prod unchanged.
+- Agreed next step: **go-live session** — move Supabase out of Tokyo (empty
+  DB, 10-min job), Vercel deploy + cron, Resend key + domain, privacy/terms
+  pages, Sentry. Then phases per docs/04-roadmap.md triggers; start
+  Meta/WhatsApp/A2P paperwork early (1–4 week lead times, gates Phase 4).
 
 ### 2026-07-02 — Session 3: Postgres/Supabase, all of Phase 2, platform admin panel
 - **Supabase**: new account/project "HubzCRM" (`mmmsjhpdoljutekishht`,
