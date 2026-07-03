@@ -34,6 +34,22 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-03 — Session 7 (Mac): live DB migrated, invite-only verified
+- Pulled Sessions 5–6, rebased this device's pending CATCHUP notes, pushed.
+- **Applied `20260702150000_invite_only_demo_requests` to the live DB**
+  (`prisma migrate deploy` — deliberately did NOT reseed, protecting the
+  rotated admin password). Confirmed via MCP: DemoRequest table live, RLS on,
+  3 migrations recorded.
+- Browser-verified the public half of invite-only on this device:
+  `/register` → `/request-demo` redirect, register API 403s, demo-request
+  form page renders (café-print), POST creates a NEW row and dev-logs the
+  DEMO_REQUEST alert email to the platform admin. Test row removed.
+- **Not verified here**: the admin-side walk (inbox → provision → OTP login →
+  forced password change) needs the rotated admin password, which only the
+  user has. Everything is in place for them to run it.
+- The `supabase-hubz` MCP server registered in Session 3 finally loaded on
+  this device — schema checks/SQL now run through it (scoped to HubzCRM).
+
 ### 2026-07-02 — Session 6 (Windows device): admin access sorted, live-DB state
 - Confirmed the platform-admin account exists and is correctly shaped in the
   HubzCRM Supabase DB (seeded in Session 3: rhlhabibli@gmail.com,
