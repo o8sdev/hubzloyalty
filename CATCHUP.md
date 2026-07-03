@@ -34,7 +34,28 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
-### 2026-07-03 — Session 8b (Mac): dashboard navigation speed
+### 2026-07-03 — Session 8c (Mac): funnel save bug + complaint callback capture
+- **Bug (user-reported): "Could not save your details" on the guest funnel.**
+  Root cause: the contact-capture transaction (~7 round trips) exceeded
+  Prisma's 5s interactive-transaction default against the Tokyo DB → P2028
+  mid-flight. The star tap (separate POST) had already landed, which is why
+  the rating still showed in the inbox. Fix: 30s timeout + the visit
+  increment/tier recompute merged into ONE raw-SQL statement. Verified: the
+  exact failing flow now returns ok (~9s in dev; sub-second once the DB is
+  nearby).
+- **Product: complaints now ask for a callback, not a loyalty signup.** For
+  rating ≤ 3 the capture step reads "Want us to make this right?" — phone
+  required "for the callback", marketing consent genuinely optional (it was
+  previously a REQUIRED checkbox — an upset guest would never check it),
+  CTA "Request a callback", done-screen promises the follow-up. 4–5★ keeps
+  the loyalty-list pitch (consent required there — joining a marketing list
+  IS the consent). Server tags funnel-created customers on ≤3 reviews with
+  `callback-requested`; the feedback inbox shows a "☎ callback requested"
+  badge and the phone is now a tap-to-call tel: link.
+- Compliance unchanged: both doors at every rating; the callback is a
+  service follow-up, not an incentive; existing customer rows are still
+  never mutated from the public endpoint (only newly created rows carry
+  the tag).
 - Tab switching was seconds-per-click (every nav re-queried Tokyo).
   Measured after the fixes: **return-to-tab ~30-50ms** (was seconds), cold
   tabs paint a skeleton at ~250ms while data streams.

@@ -61,7 +61,9 @@ export default async function ReviewsPage({
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
         include: {
-          customer: { select: { firstName: true, lastName: true, phone: true } },
+          customer: {
+            select: { firstName: true, lastName: true, phone: true, tags: true },
+          },
         },
       }),
       db.review.count({ where: { businessId } }),
@@ -168,13 +170,28 @@ export default async function ReviewsPage({
                   </p>
                 )}
                 {review.customer ? (
-                  <p className="text-xs text-slate-500">
-                    {[review.customer.firstName, review.customer.lastName]
-                      .filter(Boolean)
-                      .join(" ")}
-                    {review.customer.phone
-                      ? ` · ${review.customer.phone}`
-                      : ""}
+                  <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-slate-500">
+                    <span>
+                      {[review.customer.firstName, review.customer.lastName]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </span>
+                    {review.customer.phone ? (
+                      <>
+                        <span aria-hidden>·</span>
+                        <a
+                          href={`tel:${review.customer.phone.replace(/[^+\d]/g, "")}`}
+                          className="font-medium text-brand-700 hover:underline"
+                        >
+                          {review.customer.phone}
+                        </a>
+                      </>
+                    ) : null}
+                    {review.customer.tags.includes("callback-requested") ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                        ☎ callback requested
+                      </span>
+                    ) : null}
                   </p>
                 ) : null}
               </CardBody>

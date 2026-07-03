@@ -59,6 +59,7 @@ export function ReviewFlow({
   const [showExtra, setShowExtra] = useState(false);
   const [consent, setConsent] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
+  const [contactSaved, setContactSaved] = useState(false);
 
   // Bot honeypot: hidden field humans never see or fill. Sent with every
   // request; the API silently drops submissions that carry a value.
@@ -153,10 +154,15 @@ export function ReviewFlow({
       setError("Could not save your details — please try again.");
       return;
     }
+    setContactSaved(true);
     setStep("done");
   }
 
   const highRating = rating >= 4;
+  // A bad visit changes what we ask for and why: an upset guest won't join a
+  // "loyalty list", but many WILL leave a number so the owner can fix it —
+  // and a same-day callback is the complaint the internet never sees.
+  const complaint = rating > 0 && rating <= 3;
 
   // Both blocks below are ALWAYS rendered for every rating (no gating);
   // only order and visual emphasis change.
@@ -288,10 +294,14 @@ export function ReviewFlow({
         <Card className="w-full">
           <CardBody>
             <h2 className="text-base font-semibold text-slate-900">
-              {`Join ${businessName}'s loyalty list`}
+              {complaint
+                ? "Want us to make this right?"
+                : `Join ${businessName}'s loyalty list`}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Get a birthday treat and the occasional regulars-only offer.
+              {complaint
+                ? "Leave your name and number — the owner reads every note and can call you back personally, usually the same day."
+                : "Get a birthday treat and the occasional regulars-only offer."}
             </p>
             <form onSubmit={saveContact} className="mt-4 space-y-3">
               <div>
@@ -307,10 +317,13 @@ export function ReviewFlow({
                 />
               </div>
               <div>
-                <Label htmlFor="rf-phone">Phone</Label>
+                <Label htmlFor="rf-phone">
+                  {complaint ? "Phone (for the callback)" : "Phone"}
+                </Label>
                 <Input
                   id="rf-phone"
                   type="tel"
+                  required={complaint}
                   maxLength={40}
                   autoComplete="tel"
                   value={phone}
@@ -350,10 +363,14 @@ export function ReviewFlow({
                   + Add email &amp; birthday (optional)
                 </button>
               )}
+              {/* The callback is a service follow-up, not marketing — so for
+                  complaints the opt-in is genuinely optional. Joining the
+                  loyalty list IS the marketing relationship, so there it
+                  stays required. Consent is never pre-checked. */}
               <label className="flex items-start gap-2 text-xs text-slate-500">
                 <input
                   type="checkbox"
-                  required
+                  required={!complaint}
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-slate-300"
@@ -361,10 +378,20 @@ export function ReviewFlow({
                 <span>
                   I agree to receive occasional marketing messages from{" "}
                   {businessName}. Reply STOP anytime.
+                  {complaint ? (
+                    <span className="text-slate-400">
+                      {" "}
+                      (Optional — the callback happens either way.)
+                    </span>
+                  ) : null}
                 </span>
               </label>
               <Button type="submit" className="w-full" disabled={savingContact}>
-                {savingContact ? "Saving…" : "Join the list"}
+                {savingContact
+                  ? "Saving…"
+                  : complaint
+                    ? "Request a callback"
+                    : "Join the list"}
               </Button>
               <Button
                 type="button"
@@ -372,7 +399,7 @@ export function ReviewFlow({
                 className="w-full"
                 onClick={() => setStep("done")}
               >
-                No thanks
+                {complaint ? "No thanks, just my note" : "No thanks"}
               </Button>
             </form>
           </CardBody>
@@ -395,7 +422,9 @@ export function ReviewFlow({
             </svg>
           </div>
           <p className="text-lg font-semibold text-slate-900">
-            {"You're all set — see you soon!"}
+            {complaint && contactSaved
+              ? `Thank you — ${businessName} will reach out to make this right.`
+              : "You're all set — see you soon!"}
           </p>
           {/* Rating-neutral by design: re-offering the Google link only to
               high raters would be review gating. */}

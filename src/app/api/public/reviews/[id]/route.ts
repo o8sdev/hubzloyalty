@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { badRequest, json, notFound, parseBody, serverError } from "@/lib/http";
-import { publicReviewDetailsSchema, tierForVisits } from "@/lib/validation";
+import { publicReviewDetailsSchema } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 /**
@@ -63,81 +63,93 @@ export async function PATCH(
       });
       if (!loyalty) return notFound("Business not found");
 
-      await db.$transaction(async (tx) => {
-        // Match an existing customer within the SAME business — phone first,
-        // then email — so repeat guests don't create duplicate rows.
-        let customer = c.phone
-          ? await tx.customer.findFirst({
-              where: { businessId: review.businessId, phone: c.phone },
-            })
-          : null;
-        if (!customer && c.email) {
-          customer = await tx.customer.findFirst({
-            where: { businessId: review.businessId, email: c.email },
-          });
-        }
+      await db.$transaction(
+        async (tx) => {
+          // Match an existing customer within the SAME business — phone
+          // first, then email — so repeat guests don't create duplicate rows.
+          let customer = c.phone
+            ? await tx.customer.findFirst({
+                where: { businessId: review.businessId, phone: c.phone },
+              })
+            : null;
+          if (!customer && c.email) {
+            customer = await tx.customer.findFirst({
+              where: { businessId: review.businessId, email: c.email },
+            });
+          }
 
-        // SECURITY: this endpoint is unauthenticated, so a matched existing
-        // customer record is NEVER mutated here — anyone who knows a phone
-        // number could otherwise backfill PII or flip marketingConsent on an
-        // owner-managed record (TCPA/GDPR exposure). Contact details and
-        // consent are only ever written when this funnel CREATES the row.
-        // Existing customers who want to change consent do it via the owner.
-        if (!customer) {
-          customer = await tx.customer.create({
-            data: {
-              businessId: review.businessId,
-              firstName: c.firstName,
-              phone: c.phone,
-              email: c.email,
-              birthday: c.birthday,
-              marketingConsent: c.marketingConsent,
-              source: "QR",
-            },
-          });
-        }
+          // SECURITY: this endpoint is unauthenticated, so a matched existing
+          // customer record is NEVER mutated here — anyone who knows a phone
+          // number could otherwise backfill PII or flip marketingConsent on an
+          // owner-managed record (TCPA/GDPR exposure). Contact details and
+          // consent are only ever written when this funnel CREATES the row.
+          // Existing customers who want to change consent do it via the owner.
+          if (!customer) {
+            customer = await tx.customer.create({
+              data: {
+                businessId: review.businessId,
+                firstName: c.firstName,
+                phone: c.phone,
+                email: c.email,
+                birthday: c.birthday,
+                marketingConsent: c.marketingConsent,
+                source: "QR",
+                // Unhappy guests leave their number so the owner can call
+                // back and fix it — flag them so the CRM surfaces it.
+                tags: review.rating <= 3 ? "callback-requested" : "",
+              },
+            });
+          }
 
-        // Atomically claim the review→customer link (compare-and-set on
-        // customerId IS NULL). Exactly one concurrent PATCH wins the claim,
-        // so the QR check-in visit is credited at most once per review.
-        const claimed = await tx.review.updateMany({
-          where: { id: review.id, customerId: null },
-          data: { customerId: customer.id },
-        });
+          // Atomically claim the review→customer link (compare-and-set on
+          // customerId IS NULL). Exactly one concurrent PATCH wins the claim,
+          // so the QR check-in visit is credited at most once per review.
+          const claimed = await tx.review.updateMany({
+            where: { id: review.id, customerId: null },
+            data: { customerId: customer.id },
+          });
 
-        if (claimed.count === 1) {
-          await tx.visit.create({
-            data: {
-              businessId: review.businessId,
-              customerId: customer.id,
-              amountCents: 0,
-              pointsEarned: loyalty.pointsPerVisit,
-              note: "QR check-in",
-            },
-          });
-          // Tier derives from the post-increment count returned by the
-          // update, so concurrent visit logs can't leave it stale.
-          const updated = await tx.customer.update({
-            where: { id: customer.id },
-            data: {
-              totalVisits: { increment: 1 },
-              loyaltyPoints: { increment: loyalty.pointsPerVisit },
-              lastVisitAt: new Date(),
-            },
-          });
-          await tx.customer.update({
-            where: { id: customer.id },
-            data: { tier: tierForVisits(updated.totalVisits, loyalty) },
-          });
-        }
+          if (claimed.count === 1) {
+            await tx.visit.create({
+              data: {
+                businessId: review.businessId,
+                customerId: customer.id,
+                amountCents: 0,
+                pointsEarned: loyalty.pointsPerVisit,
+                note: "QR check-in",
+              },
+            });
+            // Single statement: increment visit/points AND derive the tier
+            // from the post-increment count. One round trip instead of two —
+            // this transaction runs against a distant DB, where round trips
+            // are the budget (see timeout below).
+            await tx.$executeRaw`
+              UPDATE "Customer" SET
+                "totalVisits"  = "totalVisits" + 1,
+                "loyaltyPoints" = "loyaltyPoints" + ${loyalty.pointsPerVisit},
+                "lastVisitAt"  = now(),
+                "updatedAt"    = now(),
+                "tier" = CASE
+                  WHEN "totalVisits" + 1 >= ${loyalty.vipThreshold} THEN 'VIP'
+                  WHEN "totalVisits" + 1 >= ${loyalty.goldThreshold} THEN 'GOLD'
+                  WHEN "totalVisits" + 1 >= ${loyalty.silverThreshold} THEN 'SILVER'
+                  ELSE 'BRONZE'
+                END
+              WHERE id = ${customer.id}`;
+          }
 
-        if (Object.keys(reviewUpdate).length > 0) {
-          await tx.review.update({
-            where: { id: review.id },
-            data: reviewUpdate,
-          });
-        }
-      });
+          if (Object.keys(reviewUpdate).length > 0) {
+            await tx.review.update({
+              where: { id: review.id },
+              data: reviewUpdate,
+            });
+          }
+        },
+        // Prisma's 5s default assumes a nearby DB. This transaction is up to
+        // ~7 round trips; against a distant region that exceeds 5s and dies
+        // with P2028 mid-flight ("Could not save your details" for guests).
+        { maxWait: 10_000, timeout: 30_000 }
+      );
     } else if (Object.keys(reviewUpdate).length > 0) {
       await db.review.update({
         where: { id: review.id },
