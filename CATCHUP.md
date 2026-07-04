@@ -26,9 +26,11 @@ eu-west-1). One typeface product-wide: **Space Grotesk** (`--font-app`).
 
 **Roadmap position:** Phases 1 & 2 done, plus the platform admin panel,
 invite-only onboarding, staff-confirmed check-ins, welcome rewards, an
-installable PWA, the guest app (G1–G4), and **Phase 3 step 1 — the points
-ledger** (accounting-grade; earn wired, redemption is the next step). Only
-Phase 2 item left is the first Vercel deploy. Phases: `docs/04-roadmap.md`.
+installable PWA, the guest app (G1–G4), and **Phase 3 — the points economy**:
+the accounting-grade ledger (step 1), the rewards catalog + staff redemption
+(step 2a), and the owner loyalty report + ledger CSV export at `/loyalty`
+(step 3). Next loyalty chunk is guest self-redeem (step 2b). Only Phase 2 item
+left is the first Vercel deploy. Phases: `docs/04-roadmap.md`.
 
 **Onboarding is INVITE-ONLY** (as of Session 5): no self-registration.
 Prospects submit `/request-demo`; the platform admin works the inbox at
@@ -38,6 +40,32 @@ owners set their own password at first login.
 ---
 
 ## Session log (newest first)
+
+### 2026-07-04 — Session 19c (Windows): owner loyalty report + ledger export (Phase 3 step 3)
+- **The accounting payoff of the ledger.** New owner page **`/loyalty`** (the
+  greyed "Loyalty · Phase 3" nav item is now live — moved from COMING_SOON to
+  NAV_ITEMS in `app-nav.tsx`, icon ✦). Read-only, no migration.
+- **Report** (`src/app/(app)/loyalty/page.tsx`) — every figure derived from the
+  append-only ledger so it reconciles to the cent:
+  - **Points outstanding** (current liability = `SUM(customer.loyaltyPoints)`),
+    **Value given away** (`SUM(ledger.valueCents > 0)` — welcome gifts + reward
+    COGS handed over), **Points issued** (`SUM(delta > 0)`), **Points redeemed**
+    (`|SUM(type=REDEEM)|`, with redemption count), plus **Members with points**
+    and **Points expired**.
+  - **Recent ledger activity** feed — last 30 movements (type label + guest +
+    signed delta + value + balanceAfter), newest first. Earned = ink, spent =
+    brand-700, zero-delta (welcome gift) = faint.
+- **CSV export** — `GET /api/business/ledger/export` streams the whole ledger
+  (createdAt, customer, type, delta, balanceAfter, valueCents, sourceType,
+  staffUserId, note), scoped by businessId, with the same formula-injection-safe
+  `csvField` escaping as the customer export. Linked from the report header.
+- Build passes; `/loyalty` is a dynamic route (requireSession).
+- **NEXT (step 2b):** guest-app SELF-redeem (mint a code in the wallet → staff
+  confirm at `/counter` — extend the counter code resolver with a third code
+  type) + guest wallet rewards UI (progress bars). Then automatic bonuses
+  (birthday/tier) + a points-expiry job (would populate the EXPIRE type + the
+  "Points expired" stat, currently always 0). Still-flagged: two pre-existing
+  funnel concurrency races (`task_0cd2af74`).
 
 ### 2026-07-04 — Session 19b (Windows): rewards catalog + redemption (Phase 3 step 2a)
 - **Guests can now SPEND points.** Rewards catalog + the redemption half of the

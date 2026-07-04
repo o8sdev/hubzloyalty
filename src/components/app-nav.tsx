@@ -8,13 +8,13 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "◧" },
   { href: "/counter", label: "Counter", icon: "▣" },
   { href: "/customers", label: "Guests", icon: "☺" },
+  { href: "/loyalty", label: "Loyalty", icon: "✦" },
   { href: "/reviews", label: "Reviews", icon: "★" },
   { href: "/activity", label: "Activity", icon: "≡" },
   { href: "/settings", label: "Settings", icon: "⚙" },
 ] as const;
 
 const COMING_SOON = [
-  { label: "Loyalty", phase: "Phase 3" },
   { label: "Campaigns", phase: "Phase 4" },
   { label: "Analytics", phase: "Phase 6" },
 ] as const;
