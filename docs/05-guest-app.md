@@ -105,9 +105,11 @@ it rather than duplicate.
 
 ## Phased roadmap
 
-- **G1 — Identity & shell.** `Guest` migration; controlled guest signup / login
-  / email-verify; guest session facade + route separation; `/guest` shell
-  (Discover/Scan/Wallet/Profile). *(shell scaffolded; auth pending)*
+- **G1 — Identity & shell. ✅ DONE.** `Guest` migration; controlled guest signup
+  / login (admin API, `disable_signup` stays on); guest session facade
+  (`getGuestSession`/`requireGuestSession`/`requireApiGuestSession`) + strict
+  two-way route separation; `/guest` shell with real login/register/profile.
+  (Email verification deferred — accounts auto-confirm for now.)
 - **G2 — Discover.** Owner "list my business" profile editor (category, location,
   cover, opt-in); `/api/guest/discover`; Discover list + business detail.
 - **G3 — Scan → points.** In-app camera QR scanner; `POST /api/guest/checkin`

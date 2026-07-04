@@ -36,6 +36,10 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
+  // Guest app: refresh cookies but never gate here — /guest pages do their own
+  // auth (Discover is public; scan/wallet/profile use requireGuestSession).
+  if (req.nextUrl.pathname.startsWith("/guest")) return res;
+
   if (session) return res;
 
   const url = req.nextUrl.clone();
@@ -60,6 +64,9 @@ export const config = {
     "/campaigns/:path*",
     "/analytics/:path*",
     "/change-password",
+    // Guest app: matched only so the middleware refreshes the guest's session
+    // cookie; it does NOT gate (see the early return above).
+    "/guest/:path*",
     // Platform admin. The middleware only checks for a session; the
     // platformAdmin claim itself is enforced by requirePlatformAdmin in the
     // layout and requireApiPlatformAdmin in /api/admin/* handlers.

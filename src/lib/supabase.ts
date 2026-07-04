@@ -48,6 +48,19 @@ export function buildClaims(user: {
   };
 }
 
+/** Claims for a guest (consumer) account: role GUEST, no business. profileId
+ *  is the domain Guest.id. Guests can never carry a businessId, so the owner
+ *  guards (which require businessId) reject them by construction. */
+export function buildGuestClaims(guestId: string): AuthClaims {
+  return {
+    profileId: guestId,
+    businessId: "",
+    role: "GUEST",
+    platformAdmin: false,
+    mustChangePassword: false,
+  };
+}
+
 export function claimsFromAuthUser(user: SupabaseAuthUser): AuthClaims | null {
   const meta = user.app_metadata as Partial<AuthClaims> | undefined;
   if (!meta || typeof meta.profileId !== "string" || meta.profileId === "") {

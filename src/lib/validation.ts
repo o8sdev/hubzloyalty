@@ -165,6 +165,14 @@ export const teamInviteSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
 });
 
+/** Guest (consumer) self-registration. `website` is a bot honeypot. */
+export const guestRegisterSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8, "Use at least 8 characters").max(200),
+  website: z.string().optional(),
+});
+
 export const businessUpdateSchema = businessUpdateFields.refine(
   (v) =>
     v.welcomeRewardEnabled !== true ||

@@ -69,6 +69,31 @@ export async function requirePlatformAdmin(): Promise<Session> {
   return session;
 }
 
+// ---------------------------------------------------------------------------
+// Guest (consumer) sessions. A guest carries role "GUEST" and no businessId,
+// so the owner/admin guards above already reject them. These helpers are the
+// mirror image for the /guest surface.
+// ---------------------------------------------------------------------------
+
+export type GuestSession = { guestId: string; name: string; email: string };
+
+export async function getGuestSession(): Promise<GuestSession | null> {
+  const session = await getSession();
+  if (!session || session.role !== "GUEST") return null;
+  return { guestId: session.userId, name: session.name, email: session.email };
+}
+
+/** For guest pages: unauthenticated → /guest/login; a business/admin session
+ *  is sent to its own home instead. */
+export async function requireGuestSession(): Promise<GuestSession> {
+  const session = await getSession();
+  if (!session) redirect("/guest/login");
+  if (session.role !== "GUEST") {
+    redirect(session.platformAdmin ? "/admin" : "/dashboard");
+  }
+  return { guestId: session.userId, name: session.name, email: session.email };
+}
+
 export async function destroySession() {
   const supabase = await supabaseServer();
   await supabase.auth.signOut();

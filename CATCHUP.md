@@ -38,6 +38,29 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-04 — Session 16 (Mac): Phase G1 — guest authentication
+- **Guest sign-in works** (verified against live Supabase: login returns
+  role=GUEST + matching profileId). Controlled self-signup via the admin API
+  (`/api/guest/auth/register`, keeps Supabase `disable_signup` ON) creates the
+  auth user + `Guest` row + GUEST claims + signs the browser in, with rollback
+  on failure. `/api/guest/auth/login` rejects non-guest identities (owners
+  can't log into the guest app; guests can't log into the owner app — the login
+  routes cross-check the User/Guest tables).
+- **Session facade:** `buildGuestClaims` (supabase.ts), `getGuestSession` /
+  `requireGuestSession` (session.ts), `requireApiGuestSession` (http.ts). A
+  guest carries role GUEST + businessId "" so the owner/admin guards already
+  reject them; `requireApiSession` needs businessId, so guests can't hit owner
+  APIs. Reverse guard: `(app)` layout bounces role GUEST → /guest/discover.
+- **UI:** `/guest/login` + `/guest/register` (shared `auth-form.tsx`, honeypot),
+  real `/guest/profile` (name/email + logout via /api/auth/logout → /guest/login).
+  Discover shows a "sign in" banner when logged-out; Scan/Wallet now gated by
+  `requireGuestSession`. Middleware matches `/guest/*` for cookie refresh only
+  (no gate — Discover stays public).
+- **NEXT (G3):** in-app QR scanner → `/api/guest/checkin` (find-or-create the
+  guest's Customer for the scanned business, mint a pending check-in) → staff
+  confirm → points; then the wallet (G3) and in-app reviews (G4).
+- Email verification is deferred (accounts auto-confirm for now) — hardening TODO.
+
 ### 2026-07-04 — Session 15 (Mac): guest side — foundation + venue pages (Phase G)
 - **New direction: consumer guest app** (full plan in `docs/05-guest-app.md`).
   Guests get accounts, a Discover directory, scan-to-check-in, per-business

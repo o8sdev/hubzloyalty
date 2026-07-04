@@ -1,4 +1,7 @@
-export default function GuestScanPage() {
+import { requireGuestSession } from "@/lib/session";
+
+export default async function GuestScanPage() {
+  await requireGuestSession();
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
       <span aria-hidden className="text-4xl text-ink">

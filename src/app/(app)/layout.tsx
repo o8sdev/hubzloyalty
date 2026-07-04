@@ -11,6 +11,8 @@ export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await requireSession();
+  // A guest (consumer) account belongs in the guest app, not the owner shell.
+  if (session.role === "GUEST") redirect("/guest/discover");
   // One-time-password accounts must set their own password before using the app.
   if (session.mustChangePassword) redirect("/change-password");
   // Platform-only accounts (no business) live in /admin, not here.

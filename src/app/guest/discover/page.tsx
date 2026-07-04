@@ -2,11 +2,12 @@ import Link from "next/link";
 import { StarRating } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { listedVenues } from "@/lib/venues";
+import { getGuestSession } from "@/lib/session";
 
 const CATEGORIES = ["All", "Coffee", "Restaurant", "Bakery", "Bar"];
 
 export default async function GuestDiscoverPage() {
-  const venues = await listedVenues();
+  const [venues, guest] = await Promise.all([listedVenues(), getGuestSession()]);
 
   return (
     <div>
@@ -14,6 +15,18 @@ export default async function GuestDiscoverPage() {
       <p className="mt-0.5 text-sm text-ink-faint">
         Cafés and restaurants near you on HUBz.
       </p>
+
+      {!guest ? (
+        <Link
+          href="/guest/login"
+          className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white active:scale-[0.99]"
+        >
+          <span className="text-sm font-medium">
+            Sign in to check in &amp; earn points
+          </span>
+          <span aria-hidden>→</span>
+        </Link>
+      ) : null}
 
       <div className="mt-4 flex items-center gap-2 rounded-xl border border-ink/15 bg-white px-3 py-2.5 text-sm text-ink-faint">
         <span aria-hidden>⌕</span> Search places

@@ -66,6 +66,18 @@ export async function requireApiSession(): Promise<
   return { session };
 }
 
+/** For /api/guest/* handlers: requires a guest (consumer) session. */
+export async function requireApiGuestSession(): Promise<
+  | { guest: { guestId: string; email: string; name: string }; error?: undefined }
+  | { guest?: undefined; error: NextResponse }
+> {
+  const session = await getSession();
+  if (!session || session.role !== "GUEST") return { error: unauthorized() };
+  return {
+    guest: { guestId: session.userId, email: session.email, name: session.name },
+  };
+}
+
 /** For /api/admin/* handlers: requires a platform-admin session. */
 export async function requireApiPlatformAdmin(): Promise<
   { session: Session; error?: undefined } | { session?: undefined; error: NextResponse }

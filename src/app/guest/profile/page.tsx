@@ -1,17 +1,38 @@
-export default function GuestProfilePage() {
+import { requireGuestSession } from "@/lib/session";
+import { avatarTone } from "@/lib/avatar";
+import { cn } from "@/lib/utils";
+import { GuestLogoutButton } from "./logout-button";
+
+export default async function GuestProfilePage() {
+  const guest = await requireGuestSession();
+  const initial = guest.name.charAt(0).toUpperCase() || "?";
+
   return (
-    <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
-      <span aria-hidden className="text-4xl text-ink">
-        ☺
-      </span>
-      <h1 className="mt-3 text-xl font-bold text-ink">Your profile</h1>
-      <p className="mt-1 max-w-xs text-sm text-ink-faint">
-        Your account, email, marketing preferences, and reviews you&apos;ve left
-        for places on HUBz.
-      </p>
-      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-faint">
-        Account · Phase G1
-      </p>
+    <div className="pt-2">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className={cn(
+            "flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white",
+            avatarTone(guest.name)
+          )}
+        >
+          {initial}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-lg font-bold text-ink">{guest.name}</p>
+          <p className="truncate text-sm text-ink-faint">{guest.email}</p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-dashed border-ink/15 bg-white p-3 text-sm text-ink-faint">
+        Your reviews, saved places, and marketing preferences will live here
+        (Phase G4).
+      </div>
+
+      <div className="mt-6">
+        <GuestLogoutButton />
+      </div>
     </div>
   );
 }
