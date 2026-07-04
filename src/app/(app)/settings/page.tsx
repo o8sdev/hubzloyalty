@@ -134,7 +134,11 @@ export default async function SettingsPage() {
             description="Who can confirm guest codes at the counter."
           />
           <CardBody>
-            <TeamCard canEdit={canEdit} members={teamMembers} />
+            <TeamCard
+              canEdit={canEdit}
+              members={teamMembers}
+              staffLimit={business.staffLimit}
+            />
           </CardBody>
         </Card>
 
@@ -178,7 +182,7 @@ export default async function SettingsPage() {
           />
           <CardBody>
             {!business.googleReviewUrl ? (
-              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="mb-4 rounded-lg border border-ink/15 bg-paper-deep/50 px-4 py-3 text-sm text-ink-soft">
                 <p className="font-medium">Google review link not set</p>
                 <p className="mt-1">
                   Guests who leave a rating can&apos;t be offered a link to your
@@ -188,7 +192,7 @@ export default async function SettingsPage() {
                     href="https://support.google.com/business/answer/3474122"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium underline hover:text-amber-900"
+                    className="font-medium underline hover:text-ink"
                   >
                     Google&apos;s official instructions
                   </a>

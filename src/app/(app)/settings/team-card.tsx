@@ -15,10 +15,14 @@ type Member = {
 export function TeamCard({
   canEdit,
   members,
+  staffLimit,
 }: {
   canEdit: boolean;
   members: Member[];
+  staffLimit: number;
 }) {
+  const staffUsed = members.filter((m) => m.role === "STAFF").length;
+  const atCap = staffUsed >= staffLimit;
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -106,7 +110,7 @@ export function TeamCard({
               <Badge
                 className={
                   m.role === "OWNER"
-                    ? "border-brand-200 bg-brand-50 text-brand-800"
+                    ? "border-ink bg-ink text-white"
                     : ""
                 }
               >
@@ -128,7 +132,7 @@ export function TeamCard({
       </ul>
 
       {invited ? (
-        <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 p-4">
+        <div className="rounded-xl border-2 border-dashed border-ink/20 bg-paper-deep/50 p-4">
           <p className="text-sm font-semibold text-slate-900">
             Staff account created for {invited.email}
           </p>
@@ -149,43 +153,62 @@ export function TeamCard({
 
       {canEdit ? (
         <form onSubmit={invite} className="space-y-3 border-t border-slate-100 pt-4">
-          <p className="text-sm font-semibold text-slate-800">Invite staff</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="team-name">Name</Label>
-              <Input
-                id="team-name"
-                required
-                maxLength={100}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Aysel"
-              />
-            </div>
-            <div>
-              <Label htmlFor="team-email">Email</Label>
-              <Input
-                id="team-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="aysel@yourcafe.com"
-              />
-            </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-800">Invite staff</p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                atCap
+                  ? "bg-paper-deep text-ink-soft"
+                  : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              {staffUsed} of {staffLimit} staff
+            </span>
           </div>
-          <p className="text-xs text-slate-400">
-            Staff can confirm guest codes at the counter (from the Counter
-            screen on their phone) — they can&apos;t change your settings.
-          </p>
-          {error ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
+          {atCap ? (
+            <p className="rounded-lg border border-ink/15 bg-paper-deep/50 px-3 py-2 text-xs text-ink-soft">
+              You&apos;ve reached your staff limit. Contact support to raise it.
             </p>
-          ) : null}
-          <Button type="submit" disabled={loading}>
-            {loading ? "Creating…" : "Create staff account"}
-          </Button>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="team-name">Name</Label>
+                  <Input
+                    id="team-name"
+                    required
+                    maxLength={100}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Aysel"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="team-email">Email</Label>
+                  <Input
+                    id="team-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="aysel@yourcafe.com"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-slate-400">
+                Staff can confirm guest codes at the counter (from the Counter
+                screen on their phone) — they can&apos;t change your settings.
+              </p>
+              {error ? (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </p>
+              ) : null}
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creating…" : "Create staff account"}
+              </Button>
+            </>
+          )}
         </form>
       ) : null}
     </div>

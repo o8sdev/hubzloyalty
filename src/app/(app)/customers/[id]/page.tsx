@@ -12,12 +12,14 @@ import {
   TierBadge,
 } from "@/components/ui";
 import {
+  cn,
   formatDate,
   formatDateOnly,
   formatDateTime,
   formatMoney,
 } from "@/lib/utils";
 import { tagsToArray } from "@/lib/validation";
+import { avatarTone, initials } from "@/lib/avatar";
 import { LogVisitButton } from "../log-visit-button";
 import { DeleteCustomerButton } from "../delete-customer-button";
 
@@ -28,6 +30,7 @@ export default async function CustomerDetailPage({
 }) {
   const session = await requireSession();
   const { id } = await params;
+  const isOwner = session.role === "OWNER";
 
   const customer = await db.customer.findFirst({
     where: { id, businessId: session.businessId },
@@ -56,18 +59,29 @@ export default async function CustomerDetailPage({
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900">{name}</h1>
-            <TierBadge tier={customer.tier} />
-            {tags.map((tag) => (
-              <Badge key={tag}>{tag}</Badge>
-            ))}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <span
+            aria-hidden
+            className={cn(
+              "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-sm",
+              avatarTone(name)
+            )}
+          >
+            {initials(customer.firstName, customer.lastName)}
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-ink">{name}</h1>
+              <TierBadge tier={customer.tier} />
+              {tags.map((tag) => (
+                <Badge key={tag}>{tag}</Badge>
+              ))}
+            </div>
+            <p className="mt-1 text-sm text-ink-faint">
+              Guest since {formatDate(customer.createdAt)}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
-            Customer since {formatDate(customer.createdAt)}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <LinkButton variant="secondary" href={`/customers/${customer.id}/edit`}>
@@ -79,25 +93,26 @@ export default async function CustomerDetailPage({
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total visits" value={customer.totalVisits} />
-        <StatCard label="Loyalty points" value={customer.loyaltyPoints} />
+        <StatCard label="Total visits" value={customer.totalVisits} icon="☕" />
+        <StatCard label="Loyalty points" value={customer.loyaltyPoints} icon="✦" />
         <StatCard
           label="Total spend"
           value={formatMoney(customer.totalSpendCents)}
+          icon="💳"
         />
-        <StatCard label="Last visit" value={formatDate(customer.lastVisitAt)} />
+        <StatCard label="Last visit" value={formatDate(customer.lastVisitAt)} icon="🕐" />
       </div>
 
       {welcomeClaim ? (
-        <Card className="mt-6">
+        <Card className="mt-6 border-gold/40 bg-gradient-to-br from-gold/10 to-cream">
           <CardBody className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-semibold text-ink">
                 🎁 Welcome gift: {welcomeClaim.rewardText}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-ink-soft">
                 Code{" "}
-                <span className="font-mono font-bold text-slate-700">
+                <span className="font-mono font-bold text-ink">
                   {welcomeClaim.code.length === 6
                     ? `${welcomeClaim.code.slice(0, 3)}-${welcomeClaim.code.slice(3)}`
                     : welcomeClaim.code}
@@ -112,10 +127,10 @@ export default async function CustomerDetailPage({
             <Badge
               className={
                 welcomeClaimStatus === "REDEEMED"
-                  ? "border-green-200 bg-green-50 text-green-700"
+                  ? "border-moss/30 bg-moss/10 text-moss"
                   : welcomeClaimStatus === "EXPIRED"
-                    ? "border-slate-200 bg-slate-50 text-slate-500"
-                    : "border-amber-300 bg-amber-50 text-amber-700"
+                    ? "border-ink/15 bg-paper text-ink-faint"
+                    : "border-slate-300 bg-slate-100 text-slate-600"
               }
             >
               {welcomeClaimStatus === "PENDING" ? "waiting to be claimed" : welcomeClaimStatus?.toLowerCase()}
@@ -130,27 +145,35 @@ export default async function CustomerDetailPage({
           <CardHeader title="Recent visits" description="Last 10 visits" />
           <CardBody className="px-0 py-0">
             {customer.visits.length === 0 ? (
-              <p className="px-5 py-6 text-sm text-slate-500">
+              <p className="px-5 py-6 text-sm text-ink-faint">
                 No visits logged yet.
               </p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-ink/5">
                 {customer.visits.map((visit) => (
                   <li
                     key={visit.id}
-                    className="flex items-start justify-between gap-4 px-5 py-3"
+                    className="flex items-start justify-between gap-4 px-5 py-3 transition-colors hover:bg-paper-deep/50"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">
-                        {formatDateTime(visit.visitedAt)}
-                      </p>
-                      {visit.note ? (
-                        <p className="mt-0.5 text-sm text-slate-500">
-                          {visit.note}
+                    <div className="flex items-start gap-3">
+                      <span
+                        aria-hidden
+                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs text-ink-soft"
+                      >
+                        ☕
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-ink">
+                          {formatDateTime(visit.visitedAt)}
                         </p>
-                      ) : null}
+                        {visit.note ? (
+                          <p className="mt-0.5 text-sm text-ink-soft">
+                            {visit.note}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-slate-700">
+                    <p className="text-sm font-semibold text-ink">
                       {visit.amountCents > 0
                         ? formatMoney(visit.amountCents)
                         : "—"}
@@ -167,21 +190,21 @@ export default async function CustomerDetailPage({
           <CardHeader title="Recent feedback" description="Last 10 reviews" />
           <CardBody className="px-0 py-0">
             {customer.reviews.length === 0 ? (
-              <p className="px-5 py-6 text-sm text-slate-500">
+              <p className="px-5 py-6 text-sm text-ink-faint">
                 No feedback yet.
               </p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-ink/5">
                 {customer.reviews.map((review) => (
                   <li key={review.id} className="px-5 py-3">
                     <div className="flex items-center justify-between gap-4">
                       <StarRating rating={review.rating} />
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-ink-faint">
                         {formatDate(review.createdAt)}
                       </p>
                     </div>
                     {review.comment ? (
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="mt-1 text-sm text-ink-soft">
                         {review.comment}
                       </p>
                     ) : null}
@@ -197,31 +220,32 @@ export default async function CustomerDetailPage({
           <CardHeader title="Contact" />
           <CardBody className="space-y-3 text-sm">
             <div className="flex justify-between gap-4">
-              <span className="text-slate-500">Phone</span>
-              <span className="text-slate-900">{customer.phone ?? "—"}</span>
+              <span className="text-ink-faint">Phone</span>
+              <span className="text-ink">{customer.phone ?? "—"}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-slate-500">Email</span>
-              <span className="text-slate-900">{customer.email ?? "—"}</span>
+              <span className="text-ink-faint">Email</span>
+              <span className="text-ink">{customer.email ?? "—"}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-slate-500">Birthday</span>
-              <span className="text-slate-900">
+              <span className="text-ink-faint">Birthday</span>
+              <span className="text-ink">
                 {formatDateOnly(customer.birthday)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-slate-500">Marketing</span>
+              <span className="text-ink-faint">Marketing</span>
               {customer.marketingConsent ? (
-                <span className="font-medium text-green-700">
-                  Marketing consent given
+                <span className="inline-flex items-center gap-1.5 font-medium text-moss">
+                  <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-moss" />
+                  Consent given
                 </span>
               ) : (
-                <span className="text-slate-500">No marketing consent</span>
+                <span className="text-ink-faint">No marketing consent</span>
               )}
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-slate-500">Source</span>
+              <span className="text-ink-faint">Source</span>
               <Badge>{customer.source}</Badge>
             </div>
           </CardBody>
@@ -232,7 +256,7 @@ export default async function CustomerDetailPage({
           <Card>
             <CardHeader title="Notes" />
             <CardBody>
-              <p className="whitespace-pre-wrap text-sm text-slate-600">
+              <p className="whitespace-pre-wrap text-sm text-ink-soft">
                 {customer.notes}
               </p>
             </CardBody>
@@ -240,16 +264,19 @@ export default async function CustomerDetailPage({
         ) : null}
       </div>
 
-      {/* Danger zone */}
-      <Card className="mt-6 border-red-200">
-        <CardHeader
-          title="Danger zone"
-          description="Deleting a customer permanently removes their visits and feedback."
-        />
-        <CardBody>
-          <DeleteCustomerButton customerId={customer.id} customerName={name} />
-        </CardBody>
-      </Card>
+      {/* Danger zone — owner only. Staff and managers can add and edit guests
+          but never delete them. */}
+      {isOwner ? (
+        <Card className="mt-6 border-red-200">
+          <CardHeader
+            title="Danger zone"
+            description="Deleting a guest permanently removes their visits and feedback."
+          />
+          <CardBody>
+            <DeleteCustomerButton customerId={customer.id} customerName={name} />
+          </CardBody>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -13,7 +13,7 @@ const NEXT_STEPS = [
   {
     n: "01",
     title: "We reach out",
-    body: "A short call or email — usually within a day or two — to hear how your café runs and show you the funnel live.",
+    body: "A short call or email — as soon as we can — to hear how your café runs and show you the funnel live.",
   },
   {
     n: "02",

@@ -21,7 +21,7 @@ export default async function CounterPage() {
     <div className="mx-auto max-w-md">
       <div className="mb-5 text-center">
         <h1 className="f-display text-2xl font-semibold tracking-tight text-ink">
-          Counter<span className="text-brand-700">.</span>
+          Counter<span className="text-ink">.</span>
         </h1>
         <p className="mt-0.5 text-sm text-ink-faint">
           {business?.name} · confirm guest codes

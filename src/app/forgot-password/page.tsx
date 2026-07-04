@@ -81,7 +81,7 @@ function ForgotPasswordForm() {
       ) : (
         <form onSubmit={onSubmit} className="space-y-5">
           {linkExpired ? (
-            <p className="rounded-xl border border-gold/50 bg-gold/15 px-4 py-3 text-sm text-ink-soft">
+            <p className="rounded-xl border border-ink/15 bg-paper px-4 py-3 text-sm text-ink-soft">
               That reset link was invalid or had expired — request a fresh one
               below.
             </p>

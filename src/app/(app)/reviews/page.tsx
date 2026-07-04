@@ -106,7 +106,7 @@ export default async function ReviewsPage({
             className={cn(
               "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
               filter === f.key
-                ? "bg-brand-700 text-white"
+                ? "bg-ink text-white"
                 : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             )}
           >
@@ -143,7 +143,7 @@ export default async function ReviewsPage({
                     ) : null}
                     {review.rating <= 3 ? (
                       review.status === "NEW" ? (
-                        <Badge className="border-amber-300 bg-amber-50 text-amber-700">
+                        <Badge className="border-brand-300 bg-brand-50 text-brand-700">
                           NEW
                         </Badge>
                       ) : (
@@ -181,14 +181,14 @@ export default async function ReviewsPage({
                         <span aria-hidden>·</span>
                         <a
                           href={`tel:${review.customer.phone.replace(/[^+\d]/g, "")}`}
-                          className="font-medium text-brand-700 hover:underline"
+                          className="font-medium text-ink hover:underline"
                         >
                           {review.customer.phone}
                         </a>
                       </>
                     ) : null}
                     {review.customer.tags.includes("callback-requested") ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700 ring-1 ring-brand-200">
                         ☎ callback requested
                       </span>
                     ) : null}
@@ -205,7 +205,7 @@ export default async function ReviewsPage({
           {page > 1 ? (
             <Link
               href={`/reviews?filter=${filter}&page=${page - 1}`}
-              className="font-medium text-brand-700 hover:underline"
+              className="font-medium text-ink hover:underline"
             >
               ← Previous
             </Link>
@@ -218,7 +218,7 @@ export default async function ReviewsPage({
           {page < totalPages ? (
             <Link
               href={`/reviews?filter=${filter}&page=${page + 1}`}
-              className="font-medium text-brand-700 hover:underline"
+              className="font-medium text-ink hover:underline"
             >
               Next →
             </Link>

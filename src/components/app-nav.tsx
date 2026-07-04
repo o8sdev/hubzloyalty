@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/counter", label: "Counter", icon: "▣" },
   { href: "/customers", label: "Guests", icon: "☺" },
   { href: "/reviews", label: "Reviews", icon: "★" },
+  { href: "/activity", label: "Activity", icon: "≡" },
   { href: "/settings", label: "Settings", icon: "⚙" },
 ] as const;
 
@@ -33,7 +34,7 @@ export function AppNav() {
             className={cn(
               "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
               active
-                ? "bg-brand-700 text-white shadow-[0_8px_18px_-10px_rgb(212_85_30/0.7)]"
+                ? "bg-ink text-white shadow-[0_8px_18px_-10px_rgb(11_11_12/0.5)]"
                 : "text-ink-soft hover:translate-x-0.5 hover:bg-paper-deep/60 hover:text-ink"
             )}
           >

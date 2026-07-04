@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "The guest book for cafés & restaurants — reviews, check-ins, loyalty.",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#0c0c0e",
-    theme_color: "#161619",
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
     orientation: "portrait",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

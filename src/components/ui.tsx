@@ -10,14 +10,17 @@ import type { Tier } from "@/lib/validation";
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
 
+// Primary is BLACK (ink), not red: max contrast, neutral valence, and it keeps
+// the red accent rare so alerts/destructive actions actually pop. Red lives on
+// the `danger` variant only.
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-700 text-white hover:bg-brand-800 focus-visible:outline-brand-700",
+    "bg-ink text-white shadow-sm hover:bg-ink/90 hover:shadow focus-visible:outline-ink",
   secondary:
-    "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:outline-slate-400",
+    "bg-cream text-ink border border-ink/15 hover:bg-paper-deep/50 hover:border-ink/25 focus-visible:outline-ink",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600",
-  ghost: "text-slate-600 hover:bg-slate-100 focus-visible:outline-slate-400",
+    "bg-red-600 text-white shadow-sm hover:bg-red-700 hover:shadow focus-visible:outline-red-600",
+  ghost: "text-ink-soft hover:bg-paper-deep/60 focus-visible:outline-ink",
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -83,7 +86,7 @@ export function Input({
       className={cn(
         "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm",
         "placeholder:text-slate-400",
-        "focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100",
+        "focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20",
         className
       )}
       {...props}
@@ -100,7 +103,7 @@ export function Textarea({
       className={cn(
         "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm",
         "placeholder:text-slate-400",
-        "focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100",
+        "focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20",
         className
       )}
       {...props}
@@ -116,7 +119,7 @@ export function Select({
     <select
       className={cn(
         "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm",
-        "focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100",
+        "focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20",
         className
       )}
       {...props}
@@ -180,11 +183,13 @@ export function CardBody({
   return <div className={cn("px-5 py-4", className)} {...props} />;
 }
 
+// Tiers are a STATUS ladder, not alerts — pure greyscale escalation so the red
+// accent stays reserved. Light grey · mid grey · dark grey · black (VIP).
 const tierStyles: Record<Tier, string> = {
-  BRONZE: "bg-orange-50 text-orange-800 border-orange-200",
-  SILVER: "bg-slate-100 text-slate-600 border-slate-300",
-  GOLD: "bg-gold/15 text-amber-700 border-gold/50",
-  VIP: "bg-brand-700 text-white border-brand-700",
+  BRONZE: "bg-slate-100 text-slate-700 border-slate-200",
+  SILVER: "bg-slate-200 text-slate-800 border-slate-300",
+  GOLD: "bg-slate-700 text-white border-slate-700",
+  VIP: "bg-ink text-white border-ink",
 };
 
 export function TierBadge({ tier }: { tier: string }) {
@@ -299,7 +304,7 @@ export function StarRating({ rating }: { rating: number }) {
           viewBox="0 0 20 20"
           className={cn(
             "h-4 w-4",
-            i <= rating ? "fill-amber-400" : "fill-slate-200"
+            i <= rating ? "fill-ink" : "fill-slate-200"
           )}
           aria-hidden
         >

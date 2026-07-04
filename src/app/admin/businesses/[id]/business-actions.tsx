@@ -17,6 +17,7 @@ type BusinessInitial = {
   timezone: string;
   notifyComplaints: boolean;
   notifyWeeklyDigest: boolean;
+  staffLimit: number;
 };
 
 export function AdminBusinessEditForm({ initial }: { initial: BusinessInitial }) {
@@ -29,6 +30,7 @@ export function AdminBusinessEditForm({ initial }: { initial: BusinessInitial })
   const [notifyWeeklyDigest, setNotifyWeeklyDigest] = useState(
     initial.notifyWeeklyDigest
   );
+  const [staffLimit, setStaffLimit] = useState(String(initial.staffLimit));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,13 @@ export function AdminBusinessEditForm({ initial }: { initial: BusinessInitial })
     e.preventDefault();
     setError(null);
     setSaved(false);
+
+    const staffLimitNum = Number(staffLimit);
+    if (!Number.isInteger(staffLimitNum) || staffLimitNum < 0 || staffLimitNum > 1000) {
+      setError("Staff limit must be a whole number between 0 and 1000");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/businesses/${initial.id}`, {
@@ -49,6 +58,7 @@ export function AdminBusinessEditForm({ initial }: { initial: BusinessInitial })
           timezone,
           notifyComplaints,
           notifyWeeklyDigest,
+          staffLimit: staffLimitNum,
         }),
       });
       const data: { error?: string } = await res.json();
@@ -105,6 +115,22 @@ export function AdminBusinessEditForm({ initial }: { initial: BusinessInitial })
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
           />
+        </div>
+        <div>
+          <Label htmlFor="ab-staff">Staff limit</Label>
+          <Input
+            id="ab-staff"
+            type="number"
+            min={0}
+            max={1000}
+            step={1}
+            value={staffLimit}
+            onChange={(e) => setStaffLimit(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-slate-400">
+            Max staff the owner can invite (owner not counted). New businesses
+            start at 1.
+          </p>
         </div>
       </div>
       <div className="flex flex-wrap gap-4">

@@ -78,7 +78,7 @@ export function DemoRequestForm() {
             Request received.
           </h2>
           <p className="mx-auto mt-3 max-w-xs leading-relaxed text-ink-soft">
-            Thanks — we&apos;ll be in touch within a day or two.
+            Thanks — we&apos;ll be in touch as soon as we can.
           </p>
         </div>
       ) : (
@@ -194,7 +194,7 @@ export function DemoRequestForm() {
           </button>
 
           <p className="f-mono text-center text-[10px] uppercase tracking-[0.16em] text-ink-faint">
-            we reply within a day or two · no card, ever
+            we reply shortly · no card, ever
           </p>
         </form>
       )}

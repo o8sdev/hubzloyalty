@@ -16,6 +16,8 @@ import {
 import { Counter } from "@/components/marketing/motion";
 import { CounterConsole } from "@/components/counter-console";
 import { PendingCheckins } from "@/components/pending-checkins";
+import { actionMeta, relativeTime, roleChip } from "@/lib/audit-display";
+import { cn } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -46,6 +48,7 @@ export default async function DashboardPage() {
     pendingClaims,
     redeemedClaims30d,
     scanBuckets,
+    recentActivity,
   ] = await Promise.all([
     db.customer.count({ where: { businessId } }),
     db.customer.count({ where: { businessId, createdAt: { gte: since } } }),
@@ -101,6 +104,19 @@ export default async function DashboardPage() {
         AND "createdAt" >= now() - interval '13 days'
       GROUP BY 1
     `,
+    db.auditLog.findMany({
+      where: { businessId, actorRole: { not: "PLATFORM_ADMIN" } },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: {
+        id: true,
+        action: true,
+        summary: true,
+        actorEmail: true,
+        actorRole: true,
+        createdAt: true,
+      },
+    }),
   ]);
 
   const avgRating = ratingAgg._avg.rating;
@@ -130,7 +146,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="f-display text-3xl font-semibold tracking-tight text-ink">
             Good to see you, {firstName}
-            <span className="text-brand-700">.</span>
+            <span className="text-ink">.</span>
           </h1>
           <p className="mt-1 text-sm text-ink-faint">
             {business?.name ?? "Your business"} · the last 30 days at a glance
@@ -140,7 +156,7 @@ export default async function DashboardPage() {
 
       {/* Onboarding nudges — only shown while setup is incomplete. */}
       {!business?.googleReviewUrl ? (
-        <Card className="mb-6 border-gold/60 bg-gold/10">
+        <Card className="mb-6 border-ink/15 bg-paper-deep/50">
           <CardBody className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-ink">
@@ -156,7 +172,7 @@ export default async function DashboardPage() {
           </CardBody>
         </Card>
       ) : totalCustomers === 0 ? (
-        <Card className="mb-6 border-gold/60 bg-gold/10">
+        <Card className="mb-6 border-ink/15 bg-paper-deep/50">
           <CardBody className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-ink">
@@ -233,10 +249,10 @@ export default async function DashboardPage() {
                 <div
                   className={`app-bar w-full rounded-t-md transition-colors duration-200 ${
                     d.isToday
-                      ? "bg-gold group-hover:bg-amber-500"
+                      ? "bg-ink group-hover:bg-ink/80"
                       : d.scans === 0
                         ? "bg-ink/10"
-                        : "bg-brand-600 group-hover:bg-brand-800"
+                        : "bg-ink/30 group-hover:bg-ink/45"
                   }`}
                   style={
                     {
@@ -319,7 +335,7 @@ export default async function DashboardPage() {
                         </span>
                         <StarRating rating={review.rating} />
                         {review.customer?.tags.includes("callback-requested") ? (
-                          <Badge className="border-amber-300 bg-amber-50 text-amber-700">
+                          <Badge className="border-brand-300 bg-brand-50 text-brand-700">
                             ☎ callback
                           </Badge>
                         ) : null}
@@ -374,23 +390,23 @@ export default async function DashboardPage() {
                   <li key={customer.id}>
                     <Link
                       href={`/customers/${customer.id}`}
-                      className="app-row-in group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-brand-50/60"
+                      className="app-row-in group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-paper-deep/50"
                       style={{ "--d": `${i * 60}ms` } as React.CSSProperties}
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <span
                           aria-hidden
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-moss/10 text-xs font-bold text-moss"
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/10 text-xs font-bold text-ink-soft"
                         >
                           {customer.firstName.charAt(0).toUpperCase()}
                         </span>
-                        <span className="truncate text-sm font-medium text-ink group-hover:text-brand-700">
+                        <span className="truncate text-sm font-medium text-ink group-hover:text-ink">
                           {customer.firstName}
                           {customer.lastName ? ` ${customer.lastName}` : ""}
                         </span>
                         <TierBadge tier={customer.tier} />
                         {customer.source === "QR" ? (
-                          <Badge className="border-brand-200 bg-brand-50 text-brand-800">
+                          <Badge className="border-ink/15 bg-paper text-ink-soft">
                             QR
                           </Badge>
                         ) : null}
@@ -406,6 +422,63 @@ export default async function DashboardPage() {
           </CardBody>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="Recent team activity"
+          description="Who did what, most recent first"
+          action={
+            <LinkButton href="/activity" variant="secondary" size="sm">
+              View all
+            </LinkButton>
+          }
+        />
+        <CardBody>
+          {recentActivity.length === 0 ? (
+            <p className="py-6 text-center text-sm text-ink-faint">
+              No activity yet — actions by you and your staff will appear here.
+            </p>
+          ) : (
+            <ul className="divide-y divide-ink/5">
+              {recentActivity.map((log, i) => {
+                const meta = actionMeta(log.action);
+                return (
+                  <li
+                    key={log.id}
+                    className="app-row-in flex items-start gap-3 py-2.5 first:pt-0 last:pb-0"
+                    style={{ "--d": `${i * 50}ms` } as React.CSSProperties}
+                  >
+                    <span
+                      aria-hidden
+                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-paper text-sm"
+                    >
+                      {meta.icon}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-ink">{log.summary}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-faint">
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                            roleChip(log.actorRole)
+                          )}
+                        >
+                          {log.actorRole}
+                        </span>
+                        <span className="truncate">{log.actorEmail}</span>
+                        <span aria-hidden>·</span>
+                        <span title={formatDateTime(log.createdAt)}>
+                          {relativeTime(log.createdAt)}
+                        </span>
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }

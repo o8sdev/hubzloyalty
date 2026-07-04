@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { AppNav } from "@/components/app-nav";
+import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { LogoutButton } from "@/components/logout-button";
 import { HubzWordmark } from "@/components/brand";
 import Link from "next/link";
@@ -40,7 +41,7 @@ export default async function AppLayout({
             <Link
               href={`/r/${business.slug}`}
               target="_blank"
-              className="mx-2 mt-1 inline-block rounded-full border border-ink/15 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-faint transition-colors hover:border-brand-700 hover:text-brand-700"
+              className="mx-2 mt-1 inline-block rounded-full border border-ink/15 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-faint transition-colors hover:border-ink hover:text-ink"
             >
               /r/{business.slug} ↗
             </Link>
@@ -52,22 +53,18 @@ export default async function AppLayout({
         </div>
       </aside>
 
-      {/* Mobile top bar */}
+      {/* Mobile shell: sticky top bar (notch-safe) + bottom tab bar */}
       <div className="flex w-full flex-col">
-        <header className="flex items-center justify-between border-b border-ink/10 bg-cream px-4 py-3 md:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-ink/10 bg-cream/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)_+_0.75rem)] backdrop-blur-md md:hidden">
           <Link href="/dashboard" className="flex">
             <HubzWordmark variant="light" imgClassName="h-5 w-auto" />
           </Link>
-          <nav className="flex gap-3 text-xs font-medium text-ink-soft">
-            <Link href="/dashboard">Home</Link>
-            <Link href="/customers">Guests</Link>
-            <Link href="/reviews">Reviews</Link>
-            <Link href="/settings">Settings</Link>
-          </nav>
+          <LogoutButton />
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6 lg:px-8">
           {children}
         </main>
+        <MobileTabBar />
       </div>
     </div>
   );

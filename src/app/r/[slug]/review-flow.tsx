@@ -386,7 +386,7 @@ export function ReviewFlow({
                     viewBox="0 0 20 20"
                     className={cn(
                       "h-11 w-11 transition-colors",
-                      filled ? "fill-amber-400" : "fill-slate-300"
+                      filled ? "fill-ink" : "fill-slate-300"
                     )}
                     aria-hidden
                   >
@@ -599,8 +599,8 @@ export function ReviewFlow({
               completion), identical at every rating; never for the review.
               Confirming this ONE code at the counter also counts the visit. */}
           {welcomeReward ? (
-            <div className="w-full max-w-xs rounded-2xl border-2 border-dashed border-amber-400 bg-amber-50 px-5 py-5 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700">
+            <div className="w-full max-w-xs rounded-2xl border-2 border-dashed border-gold/50 bg-gold/10 px-5 py-5 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-deep">
                 🎁 Welcome gift for joining
               </p>
               <p className="mt-1 text-base font-semibold text-slate-900">
@@ -640,8 +640,8 @@ export function ReviewFlow({
               </p>
             </div>
           ) : remembered?.code ? (
-            <div className="w-full max-w-xs rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 px-5 py-4 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700">
+            <div className="w-full max-w-xs rounded-2xl border border-dashed border-gold/40 bg-gold/10 px-5 py-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-deep">
                 Your welcome gift is still waiting
               </p>
               <p className="mt-1 text-sm text-slate-700">{remembered.rewardText}</p>

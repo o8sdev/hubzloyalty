@@ -102,7 +102,7 @@ export function PendingCheckins({ big = false }: { big?: boolean }) {
             <div className="min-w-0">
               <p className={`font-semibold text-ink ${big ? "text-base" : "text-sm"}`}>
                 {row.tableNumber ? (
-                  <span className="mr-2 rounded-md bg-brand-700 px-1.5 py-0.5 text-xs font-bold text-white">
+                  <span className="mr-2 rounded-md bg-ink px-1.5 py-0.5 text-xs font-bold text-white">
                     T{row.tableNumber}
                   </span>
                 ) : null}

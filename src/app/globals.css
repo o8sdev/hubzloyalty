@@ -1,37 +1,61 @@
 @import "tailwindcss";
 
 @theme {
-  /* HUBz brand — monochrome ink. The whole product (app, admin, marketing) is
-     one black-and-white identity; brand-700 is the primary action color,
-     a near-black that matches the HUBz wordmark. */
-  --color-brand-50: #f4f4f5;
-  --color-brand-100: #e5e5e7;
-  --color-brand-200: #cacacf;
-  --color-brand-300: #9b9ba3;
-  --color-brand-400: #5d5d66;
-  --color-brand-500: #333338;
-  --color-brand-600: #1d1d21;
-  --color-brand-700: #161619;
-  --color-brand-800: #0c0c0e;
-  --color-brand-900: #050506;
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
+  /* HUBz brand — modern monochrome + one red, on a strict "one colour, one job"
+     system (see CLAUDE.md). The wordmark stays black & white (a raster stamp).
+     GRAYSCALE (ink/paper/slate) carries structure AND every neutral action —
+     primary buttons, active nav, selected chips, tiers are all black, not red.
+     brand-* is the RED scale reserved for RISK + URGENCY only (destructive
+     actions + alerts: complaints, callbacks, the attention list); brand-600 ==
+     --ember == rgb(209 21 48), matching the shadows baked into the CSS below.
+     Keeping red rare is what lets it pop pre-attentively. */
+  --color-brand-50: #fff1f2;
+  --color-brand-100: #ffe0e3;
+  --color-brand-200: #fdc5ca;
+  --color-brand-300: #f89ba4;
+  --color-brand-400: #f26374;
+  --color-brand-500: #e5304a;
+  --color-brand-600: #d11530;
+  --color-brand-700: #b3122a;
+  --color-brand-800: #920f23;
+  --color-brand-900: #78111f;
+  --color-accent-400: #f26374;
+  --color-accent-500: #e5304a;
+  --color-accent-600: #d11530;
 
-  /* HUBz surface palette (keeps the old key names so existing utilities
-     recolor automatically): clean light neutral, near-black ink, one warm
-     gold reserved for star ratings. */
-  --color-paper: #f5f5f6;
-  --color-paper-deep: #e8e8ea;
-  --color-ink: #121214;
-  --color-ink-soft: #46464d;
-  --color-ink-faint: #8a8a92;
-  --color-ember: #161619;
-  --color-ember-deep: #000000;
-  --color-moss: #1f1f24;
-  --color-moss-dark: #0d0d10;
-  --color-gold: #d8a72c;
+  /* Surface palette (keeps the old key names so every utility recolours
+     automatically): whisper-grey page, near-black ink, red accent, quiet green
+     for success/consent, and a scarce gold (--color-gold / --color-gold-deep)
+     reserved ONLY for reward/loyalty moments (welcome-gift tickets). Star
+     ratings + tier badges are greyscale in ui.tsx, so gold stays special. */
+  --color-paper: #f7f7f8;
+  --color-paper-deep: #ececee;
+  --color-ink: #0b0b0c;
+  --color-ink-soft: #52525b;
+  --color-ink-faint: #a1a1aa;
+  --color-ember: #d11530;
+  --color-ember-deep: #b3122a;
+  --color-moss: #15803d;
+  --color-moss-dark: #14532d;
+  --color-gold: #c8901f;
+  --color-gold-deep: #7a5310;
   --color-cream: #ffffff;
+
+  /* Neutral ramp — Tailwind's `slate` is remapped to a cool zinc grey so every
+     stray `slate-*` utility across the product (settings, reviews, funnel, and
+     the admin shell) reads as a modern true-neutral. Lightness order preserved,
+     so all contrast ratios hold; the dark end is the admin shell colour. */
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #a1a1aa;
+  --color-slate-500: #71717a;
+  --color-slate-600: #52525b;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #27272a;
+  --color-slate-900: #18181b;
+  --color-slate-950: #0a0a0a;
 
   /* One typeface across the whole product. --font-app is Space Grotesk, set by
      next/font in layout.tsx; mapping every Tailwind font role to it means
@@ -46,10 +70,16 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-paper text-ink antialiased;
   /* Owner app + admin base font. Marketing/auth (.mkt) override this below. */
   font-family: var(--font-app), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Warm ember text selection product-wide (the .mkt site sets its own below). */
+::selection {
+  background: var(--color-ember);
+  color: var(--color-cream);
 }
 
 /* ===========================================================================
@@ -84,9 +114,9 @@ body {
 .app-shimmer {
   background: linear-gradient(
     90deg,
-    rgb(33 23 17 / 0.05) 25%,
-    rgb(33 23 17 / 0.11) 50%,
-    rgb(33 23 17 / 0.05) 75%
+    rgb(24 24 27 / 0.05) 25%,
+    rgb(24 24 27 / 0.10) 50%,
+    rgb(24 24 27 / 0.05) 75%
   );
   background-size: 200% 100%;
   animation: app-shimmer 1.4s linear infinite;
@@ -115,6 +145,26 @@ body {
   }
   .app-shimmer {
     animation: none;
+  }
+}
+
+/* ===========================================================================
+   Mobile / installable-PWA polish — makes the responsive app feel native on a
+   phone home screen. Global and cheap; no per-page work.
+   ======================================================================== */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 640px) {
+  /* iOS Safari zooms the viewport when a focused control's font-size < 16px.
+     Pin form controls to 16px on phones so tapping a field never zooms. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 
@@ -229,7 +279,7 @@ body {
 .mkt-btn-primary {
   background: var(--color-ember);
   color: var(--color-cream);
-  box-shadow: 0 10px 24px -12px rgb(212 85 30 / 0.65);
+  box-shadow: 0 10px 24px -12px rgb(209 21 48 / 0.55);
 }
 .mkt-btn-primary::before {
   background: var(--color-ink);
@@ -410,10 +460,10 @@ body {
 @keyframes mkt-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(212 85 30 / 0.45);
+    box-shadow: 0 0 0 0 rgb(209 21 48 / 0.45);
   }
   60% {
-    box-shadow: 0 0 0 12px rgb(212 85 30 / 0);
+    box-shadow: 0 0 0 12px rgb(209 21 48 / 0);
   }
 }
 .mkt-pulse {

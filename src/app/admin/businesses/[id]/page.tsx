@@ -114,6 +114,7 @@ export default async function AdminBusinessDetailPage({
                 timezone: business.timezone,
                 notifyComplaints: business.notifyComplaints,
                 notifyWeeklyDigest: business.notifyWeeklyDigest,
+                staffLimit: business.staffLimit,
               }}
             />
           </CardBody>

@@ -137,7 +137,28 @@ pending today); re-scans re-show the same pending code instead of minting
 duplicates; feedback itself is never gated. `askTableNumber` adds a table
 field for waiter venues. Owner/admin invite STAFF via
 `POST /api/business/team` (OTP provisioning, `DELETE /api/business/team/:id`
-to remove; owners not removable here, self-removal blocked).
+to remove; owners not removable here, self-removal blocked). Invites are
+capped by `Business.staffLimit` (STAFF only, owner excluded; default 1,
+raised only by a platform admin via `PATCH /api/admin/businesses/:id`
+`{ staffLimit }`).
+
+## Audit log
+
+Append-only `AuditLog` of meaningful actions (`src/lib/audit.ts`
+`recordAudit()` — never throws; called via `after()`). Actor email + role are
+denormalized so rows survive user deletion and filter without a join.
+Instrumented: `auth.login/logout`, `checkin.confirm`, `gift.redeem`,
+`customer.create/update/delete`, `visit.create`, `review.update`,
+`settings.business/loyalty`, `team.invite/remove`, and
+`admin.business.create/update/delete`.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/activity` | OWNER view: own business only, `actorRole != PLATFORM_ADMIN`; filter `?actorUserId&from&to&page` → `{ logs, total }` |
+| GET | `/api/admin/activity` | platform admin, cross-tenant; filter `?q(email/summary)&businessId&action&from&to&page` → `{ logs, total }` |
+
+Surfaces: owner `/activity` page + a "Recent team activity" card on the
+dashboard; platform `/admin/activity` page (both live explorers).
 
 ## Cron
 

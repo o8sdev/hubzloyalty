@@ -53,13 +53,26 @@ Supabase Postgres + Supabase Auth (project ghubhzbvkfjhtywvtvuj, eu-west-1).
   `bg-brand-700` etc. (defined in `src/app/globals.css` @theme). The /admin
   shell is dark (slate-900) on purpose — don't blend it with the tenant app.
 - **Product brand is HUBz Loyalty** (part of the HUBz ecosystem, alongside
-  HUBz Studio). Identity is **monochrome black & white** — `--color-brand-*`
-  and the café-print vars (`--color-ember/moss/paper/ink/cream`) are all
-  greyscale/near-black now; only `--color-gold` (star ratings) and the
-  semantic tier/status colors keep hue. The wordmark is `HubzWordmark` in
-  `src/components/brand.tsx` (variant light/dark); raster logo assets live in
-  `public/brand/`. Don't reintroduce the old ember/café colors or a text
-  wordmark.
+  HUBz Studio). The **wordmark stays monochrome black & white** — a raster asset
+  (`HubzWordmark` in `src/components/brand.tsx`, variant light/dark; PNGs in
+  `public/brand/`), untouched by CSS tokens. The UI runs a strict **"one colour,
+  one job" system** (set 2026-07-04) — enforce it, don't drift:
+  - **Grayscale = structure + every neutral action.** `--color-ink` (near-black)
+    is PRIMARY buttons, active nav, selected chips/tabs, links, and the top tier
+    (VIP); `--color-paper` whisper-grey page, `--color-cream` white cards;
+    Tailwind `slate` is remapped to a **cool zinc** ramp (also the /admin dark
+    shell). Tier badges are a grey→grey→grey→**black** ladder; star ratings are
+    black. Avatars are monochrome (`src/lib/avatar.ts`).
+  - **Red = risk + urgency ONLY, kept rare.** `--color-brand-*` (== `--color-ember`
+    == brand-600 == `rgb(209 21 48)`) is for destructive actions (the `danger`
+    button) and alerts only — complaint `NEW`/callback badges, the dashboard
+    attention list. NOT primary buttons, NOT nav, NOT links, NOT tiers. If you
+    reach for red on anything that isn't a risk or an alert, use ink instead.
+  - **Green (`--color-moss`) = success/consent**; **gold (`--color-gold` /
+    `--color-gold-deep`) = reward/loyalty moments only** (welcome-gift tickets).
+    Both stay scarce.
+  Don't paint the UI red, don't give the wordmark colour, and keep the accents
+  rare — scarcity is what makes them read as signals.
 - **One typeface product-wide: Space Grotesk** (`--font-app`, set by next/font
   in `layout.tsx`; every font role — body, `.f-display`, `.f-mono`, and
   Tailwind `--font-sans`/`--font-mono`/`--font-serif` — maps to it in

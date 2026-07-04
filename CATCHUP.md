@@ -1,7 +1,8 @@
 # CATCHUP — read this first on a new device
 
 **What this is:** HUBz Loyalty (repo: hubzloyalty) — a SaaS for cafés/restaurants,
-part of the HUBz ecosystem (alongside HUBz Studio). Monochrome black/white brand.
+part of the HUBz ecosystem (alongside HUBz Studio). Black & white wordmark; the UI
+is modern monochrome + one red accent (white / near-black / red, cool-grey neutrals).
 A QR code on the counter sends guests to a mobile page where they rate their
 visit; everyone gets both a Google-review link and a private "message the
 owner" option (deliberately **ungated** — rating-based routing violates
@@ -36,6 +37,94 @@ owners set their own password at first login.
 ---
 
 ## Session log (newest first)
+
+### 2026-07-04 — Session 14 (Mac): guest-delete safety + palette (café → modern mono+red)
+- **Mobile = the PWA (no native rebuild).** Chose to polish the existing
+  responsive + installable web app rather than fork a React Native codebase
+  (keeps features/logic identical by construction). Added a native-style bottom
+  tab bar (`src/components/mobile-tab-bar.tsx`: Home/Counter/Guests/Reviews/
+  Settings, active=black pill, safe-area-aware); reworked the `(app)` mobile
+  header to sticky + notch-safe with logout; `main` padded (`pb-24 md:pb-6`) to
+  clear the bar. Fixed stale PWA theming (manifest + viewport `themeColor`
+  #161619→#fff, bg #0c0c0e→#fff). globals.css: killed tap-highlight + pinned
+  form controls to 16px on phones (stops iOS focus-zoom). Icons already existed
+  in public/icons. NEXT for stores: Capacitor wrap once deployed (deferred).
+- **Colour DISCIPLINE pass (one colour, one job).** Grounded a rulebook in colour
+  psych (scarcity/pop-out/consistency) — see CLAUDE.md brand rule. Applied: PRIMARY
+  buttons + active nav + selected chips/tabs + VIP tier + links → **black** (`ink`),
+  not red. **Red pared back to alerts/danger ONLY** (complaint NEW/callback badges,
+  dashboard attention list, `danger` button) — verified red no longer appears on
+  routine chrome. **Gold reintroduced** (`--color-gold` #c8901f + `--color-gold-deep`)
+  scoped to reward/gift moments; green (`moss`) = success/consent. Touched ui.tsx
+  (primary=ink, tier ladder grey→black, star=ink, focus rings=ink), app-nav,
+  customers-explorer, dashboard (chart mono, recent-guests neutral, attention list
+  kept red), reviews/settings/team-card/counter/activity/pending-checkins/layout,
+  review-flow + customer-detail welcome tickets = gold.
+- **⚠ Final palette = modern monochrome + one red** (superseded the café-print
+  revival below within the same session, per owner request "white/black/red,
+  more modern"). `globals.css @theme`: `--color-brand-*` = RED scale (brand-700
+  primary; `--color-ember` = brand-600 = `rgb(209 21 48)`), `--color-ink`
+  near-black, `--color-paper` whisper-grey `#f7f7f8`, `--color-cream` white,
+  `--color-moss` quiet green (success/consent), `--color-gold` retired → red.
+  `slate` remapped to **cool zinc grey** (was warm taupe). Baked-in `.mkt`/
+  shimmer rgb() swapped warm→red/zinc. TierBadge → grey→black→red; StarRating →
+  black (ui.tsx). `avatar.ts` → monochrome dark solids. Raw `amber` attention
+  states across dashboard/reviews/settings/team/funnel → red. `gold`-token
+  marketing accents auto-flip to red. Admin shell now cool-zinc dark.
+- **Guest deletion is owner-only.** `DELETE /api/customers/[id]` now 403s for
+  anyone but `OWNER` (staff/managers can add & edit guests, never delete); the
+  detail page hides the whole Danger zone for non-owners. New confirm **modal**
+  (`delete-customer-button.tsx`): red header, must type the guest's name to arm
+  the red "Delete permanently" button, Esc/backdrop close, scroll-lock.
+- **Palette revival (reverses the Session-12 monochrome flatten).** The
+  wordmark stays B&W (raster), but `globals.css @theme` tokens are restored to a
+  lively café-print system: `--color-brand-*` = ember/terracotta scale
+  (brand-700 primary), warm espresso `--color-ink`, oat `--color-paper`, ivory
+  `--color-cream`, `--color-moss` green, `--color-gold`. **Tailwind `slate` is
+  remapped to warm taupe/espresso** in @theme, so ~230 stray `slate-*` across
+  settings/reviews/funnel — and the /admin shell — warm up automatically
+  (admin now warm-espresso; still dark, still distinct). `body` → `bg-paper
+  text-ink`; global ember `::selection`.
+- **New `src/lib/avatar.ts`** — deterministic multicolour warm gradient avatars
+  + initials, used by the guests explorer and the customer detail header.
+- **Guests explorer + customer detail** reworked to the warm palette: ember
+  active chips (match primary buttons / active nav), moss for consent, gold
+  star ratings, warm hovers, colourful avatars. `ui.tsx` buttons got warm
+  secondary/ghost + soft shadows on primary/danger.
+- **Not touched:** fonts (still Space Grotesk, per hard rule), auth invariants,
+  the B&W wordmark. CLAUDE.md brand rule updated to match.
+- **In flight:** nothing committed yet — user was testing; awaiting "commit it".
+
+### 2026-07-04 — Session 13 (Mac): audit log + per-business staff cap (+ 431 fix, change-pw fix, demo copy)
+- **Audit log** (new `AuditLog` table +RLS): `recordAudit()` in
+  `src/lib/audit.ts` (never throws, called via `after()`). Instrumented
+  ~15 endpoints — login/logout, counter confirm (checkin+gift), customer
+  CRUD, visit log, review resolve, business+loyalty settings, team
+  invite/remove, admin business create/update/delete. Actor email+role
+  denormalized (survives user deletion, filters without a join).
+  - Owner view: `/activity` page (filter by team member + date) + a
+    "Recent team activity" card on the dashboard. Scoped to their business,
+    excludes PLATFORM_ADMIN rows.
+  - Admin view: `/admin/activity` (all businesses; filter by business,
+    action, free-text email/summary, date). Both are live explorers.
+  - Display helpers in `src/lib/audit-display.ts`.
+- **Per-business staff cap**: `Business.staffLimit` default **1**; enforced
+  in the team-invite endpoint (counts STAFF, owner excluded); owner Settings
+  → Team shows "X of N staff" and blocks at cap; platform admin edits it on
+  the business detail page.
+- Migration `audit_log_and_staff_cap` applied live. Verified the data layer
+  (owner query excludes admin rows; admin filters by action/email; cap
+  blocks — Test Business is at 1/1). Build 56 routes.
+- ⚠ Dev server MUST restart after pulling: the running process has the
+  pre-migration Prisma client and 500s on the new `auditLog` model until
+  restart (Ctrl+C → npm run dev).
+- Also landed earlier this session (uncommitted with the above): **431 fix**
+  (dev script uses cross-env `--max-http-header-size=65536` — bloated
+  localhost cookie jars 431'd localhost while the LAN IP worked),
+  **change-password fix** (page reads mustChangePassword from the DB, not the
+  lagging app_metadata claim, so forced first-login can't misfire "Current
+  password is required"), **demo-request copy** ("within a day or two" →
+  "as soon as we can" / "reply shortly").
 
 ### 2026-07-03 — Session 12 (Windows): HUBz rebrand (name, logo, monochrome palette)
 - **Rebranded the whole product to "HUBz Loyalty"** (part of the HUBz ecosystem

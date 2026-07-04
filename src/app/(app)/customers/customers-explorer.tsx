@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { EmptyState, LinkButton, Select, TierBadge } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 import { TIERS } from "@/lib/validation";
+import { avatarTone, initials } from "@/lib/avatar";
 
 // ---------------------------------------------------------------------------
 // Live guest explorer: instant search + chip filters + sort, all in-place.
 // Fetches GET /api/customers (debounced, abortable, stale-while-loading) and
 // mirrors the active filters into the URL so views are shareable/reloadable.
+// Warm café palette: colourful initials, ember/emerald/amber accents.
 // ---------------------------------------------------------------------------
 
 type CustomerRow = {
@@ -75,13 +77,19 @@ function Chip({
   active,
   onClick,
   children,
-  tone = "ember",
+  tone = "ink",
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  tone?: "ember" | "moss";
+  tone?: "ink" | "moss";
 }) {
+  // Selection is a state, not an alert → active chips are black. Green ("moss")
+  // is reserved for the positive "Consented" filter.
+  const activeCls =
+    tone === "moss"
+      ? "border-moss bg-moss text-white shadow-[0_6px_14px_-8px_rgba(21,128,61,0.9)]"
+      : "border-ink bg-ink text-white shadow-[0_6px_14px_-8px_rgba(11,11,12,0.55)]";
   return (
     <button
       type="button"
@@ -90,10 +98,8 @@ function Chip({
       className={cn(
         "rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
         active
-          ? tone === "moss"
-            ? "border-moss bg-moss text-white shadow-[0_6px_14px_-8px_rgb(35_75_56/0.8)]"
-            : "border-brand-700 bg-brand-700 text-white shadow-[0_6px_14px_-8px_rgb(212_85_30/0.8)]"
-          : "border-ink/15 bg-white text-ink-soft hover:-translate-y-px hover:border-ink/30 hover:text-ink"
+          ? activeCls
+          : "border-ink/15 bg-white text-ink-soft hover:-translate-y-px hover:border-ink/40 hover:text-ink"
       )}
     >
       {children}
@@ -185,7 +191,7 @@ export function CustomersExplorer({
   return (
     <div>
       {/* ============================== Toolbar */}
-      <div className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-ink/10 bg-cream p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
             <span
@@ -203,14 +209,14 @@ export function CustomersExplorer({
               }}
               placeholder="Search name, phone, or email…"
               aria-label="Search guests"
-              className="w-full rounded-xl border border-ink/15 bg-paper py-2 pl-9 pr-9 text-sm text-ink placeholder:text-ink-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 [&::-webkit-search-cancel-button]:hidden"
+              className="w-full rounded-xl border border-ink/15 bg-white py-2 pl-9 pr-9 text-sm text-ink placeholder:text-ink-faint focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-ink/10 [&::-webkit-search-cancel-button]:hidden"
             />
             {qInput ? (
               <button
                 type="button"
                 onClick={() => setQInput("")}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full px-1 text-ink-faint transition-colors hover:text-brand-700"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full px-1 text-ink-faint transition-colors hover:text-ink"
               >
                 ✕
               </button>
@@ -294,7 +300,7 @@ export function CustomersExplorer({
             <button
               type="button"
               onClick={clearAll}
-              className="ml-auto text-xs font-semibold text-brand-700 underline-offset-2 hover:underline"
+              className="ml-auto text-xs font-semibold text-ink underline-offset-2 hover:underline"
             >
               Clear all ({activeFilterCount})
             </button>
@@ -338,7 +344,7 @@ export function CustomersExplorer({
               <button
                 type="button"
                 onClick={clearAll}
-                className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-800"
+                className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ink/90"
               >
                 Clear all filters
               </button>
@@ -355,7 +361,7 @@ export function CustomersExplorer({
           {/* Desktop table */}
           <div className="hidden overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm md:block">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-ink/10 bg-paper/70 text-[11px] uppercase tracking-wider text-ink-faint">
+              <thead className="border-b border-ink/10 bg-paper-deep/50 text-[11px] uppercase tracking-wider text-ink-faint">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Guest</th>
                   <th className="px-4 py-3 font-semibold">Phone</th>
@@ -367,94 +373,110 @@ export function CustomersExplorer({
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/5">
-                {data.customers.map((c, i) => (
-                  <tr
-                    key={c.id}
-                    onClick={() => router.push(`/customers/${c.id}`)}
-                    className="app-row-in group cursor-pointer transition-colors hover:bg-brand-50/60"
-                    style={{ "--d": `${Math.min(i * 25, 300)}ms` } as React.CSSProperties}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-2.5">
-                        <span
-                          aria-hidden
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-moss/10 text-xs font-bold text-moss"
-                        >
-                          {c.firstName.charAt(0).toUpperCase()}
-                        </span>
-                        <span>
-                          <Link
-                            href={`/customers/${c.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="font-medium text-ink hover:text-brand-700"
+                {data.customers.map((c, i) => {
+                  const fullName = c.lastName
+                    ? `${c.firstName} ${c.lastName}`
+                    : c.firstName;
+                  return (
+                    <tr
+                      key={c.id}
+                      onClick={() => router.push(`/customers/${c.id}`)}
+                      className="app-row-in group cursor-pointer transition-colors hover:bg-paper-deep/50"
+                      style={{ "--d": `${Math.min(i * 25, 300)}ms` } as React.CSSProperties}
+                    >
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-2.5">
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm",
+                              avatarTone(fullName)
+                            )}
                           >
-                            {c.firstName}
-                            {c.lastName ? ` ${c.lastName}` : ""}
-                          </Link>
-                          <span className="mt-0.5 flex items-center gap-1.5">
-                            <span
-                              aria-hidden
-                              className={cn(
-                                "h-1.5 w-1.5 rounded-full",
-                                c.marketingConsent ? "bg-moss" : "bg-ink/15"
-                              )}
-                              title={c.marketingConsent ? "Marketing consent" : "No marketing consent"}
-                            />
-                            <span className="text-[11px] text-ink-faint">
-                              {c.marketingConsent ? "consented" : "no consent"}
-                              {c.tags.includes("callback-requested") ? " · ☎ callback" : ""}
+                            {initials(c.firstName, c.lastName)}
+                          </span>
+                          <span>
+                            <Link
+                              href={`/customers/${c.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-medium text-ink hover:underline"
+                            >
+                              {fullName}
+                            </Link>
+                            <span className="mt-0.5 flex items-center gap-1.5">
+                              <span
+                                aria-hidden
+                                className={cn(
+                                  "h-1.5 w-1.5 rounded-full",
+                                  c.marketingConsent ? "bg-moss" : "bg-ink/15"
+                                )}
+                                title={c.marketingConsent ? "Marketing consent" : "No marketing consent"}
+                              />
+                              <span className="text-[11px] text-ink-faint">
+                                {c.marketingConsent ? "consented" : "no consent"}
+                                {c.tags.includes("callback-requested") ? (
+                                  <span className="font-medium text-brand-700"> · ☎ callback</span>
+                                ) : null}
+                              </span>
                             </span>
                           </span>
                         </span>
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-ink-soft">{c.phone ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <TierBadge tier={c.tier} />
-                    </td>
-                    <td className="px-4 py-3 font-medium text-ink">{c.totalVisits}</td>
-                    <td className="px-4 py-3 text-ink-soft">{c.loyaltyPoints}</td>
-                    <td className="px-4 py-3 text-ink-soft">{formatDate(c.lastVisitAt)}</td>
-                    <td className="px-2 py-3 text-ink-faint transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-brand-700">
-                      ›
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3 text-ink-soft">{c.phone ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <TierBadge tier={c.tier} />
+                      </td>
+                      <td className="px-4 py-3 font-medium text-ink">{c.totalVisits}</td>
+                      <td className="px-4 py-3 text-ink-soft">{c.loyaltyPoints}</td>
+                      <td className="px-4 py-3 text-ink-soft">{formatDate(c.lastVisitAt)}</td>
+                      <td className="px-2 py-3 text-ink-faint transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-ink">
+                        ›
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Mobile cards */}
           <div className="space-y-2 md:hidden">
-            {data.customers.map((c, i) => (
-              <Link
-                key={c.id}
-                href={`/customers/${c.id}`}
-                className="app-row-in flex items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-white p-4 shadow-sm active:bg-brand-50/60"
-                style={{ "--d": `${Math.min(i * 30, 240)}ms` } as React.CSSProperties}
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span
-                    aria-hidden
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-moss/10 text-sm font-bold text-moss"
-                  >
-                    {c.firstName.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-ink">
-                      {c.firstName}
-                      {c.lastName ? ` ${c.lastName}` : ""}
-                    </p>
-                    <p className="truncate text-xs text-ink-faint">
-                      {c.totalVisits} visit{c.totalVisits === 1 ? "" : "s"} ·{" "}
-                      {c.loyaltyPoints} pts
-                      {c.tags.includes("callback-requested") ? " · ☎" : ""}
-                    </p>
+            {data.customers.map((c, i) => {
+              const fullName = c.lastName
+                ? `${c.firstName} ${c.lastName}`
+                : c.firstName;
+              return (
+                <Link
+                  key={c.id}
+                  href={`/customers/${c.id}`}
+                  className="app-row-in flex items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-white p-4 shadow-sm active:bg-paper-deep/50"
+                  style={{ "--d": `${Math.min(i * 30, 240)}ms` } as React.CSSProperties}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm",
+                        avatarTone(fullName)
+                      )}
+                    >
+                      {initials(c.firstName, c.lastName)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-ink">
+                        {fullName}
+                      </p>
+                      <p className="truncate text-xs text-ink-faint">
+                        {c.totalVisits} visit{c.totalVisits === 1 ? "" : "s"} ·{" "}
+                        {c.loyaltyPoints} pts
+                        {c.tags.includes("callback-requested") ? " · ☎" : ""}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <TierBadge tier={c.tier} />
-              </Link>
-            ))}
+                  <TierBadge tier={c.tier} />
+                </Link>
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -464,7 +486,7 @@ export function CustomersExplorer({
                 type="button"
                 disabled={data.page <= 1 || loading}
                 onClick={() => setQuery((prev) => ({ ...prev, page: prev.page - 1 }))}
-                className="rounded-lg border border-ink/15 bg-white px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-brand-700 hover:text-brand-700 disabled:pointer-events-none disabled:opacity-40"
+                className="rounded-lg border border-ink/15 bg-white px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink disabled:pointer-events-none disabled:opacity-40"
               >
                 ← Prev
               </button>
@@ -475,7 +497,7 @@ export function CustomersExplorer({
                 type="button"
                 disabled={data.page >= lastPage || loading}
                 onClick={() => setQuery((prev) => ({ ...prev, page: prev.page + 1 }))}
-                className="rounded-lg border border-ink/15 bg-white px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-brand-700 hover:text-brand-700 disabled:pointer-events-none disabled:opacity-40"
+                className="rounded-lg border border-ink/15 bg-white px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink disabled:pointer-events-none disabled:opacity-40"
               >
                 Next →
               </button>

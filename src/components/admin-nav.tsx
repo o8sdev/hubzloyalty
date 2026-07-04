@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/admin/businesses", label: "Businesses", icon: "⌂", exact: false },
   { href: "/admin/users", label: "Users", icon: "☺", exact: false },
   { href: "/admin/reviews", label: "Reviews", icon: "★", exact: false },
+  { href: "/admin/activity", label: "Activity", icon: "≡", exact: false },
   { href: "/admin/emails", label: "Emails", icon: "✉", exact: false },
   { href: "/admin/system", label: "System", icon: "⚙", exact: false },
 ] as const;

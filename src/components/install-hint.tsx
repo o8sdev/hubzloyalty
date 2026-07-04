@@ -43,7 +43,7 @@ export function InstallHint() {
         <button
           type="button"
           onClick={() => void prompt.prompt()}
-          className="text-sm font-semibold text-brand-700 hover:underline"
+          className="text-sm font-semibold text-ink hover:underline"
         >
           ⬇ Install HUBz Loyalty on this phone
         </button>
