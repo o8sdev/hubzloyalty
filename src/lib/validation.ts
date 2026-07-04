@@ -239,6 +239,22 @@ export const visitCreateSchema = z.object({
   note: optionalTrimmed(500),
 });
 
+// Loyalty rewards catalog (Phase 3). pointsCost = what the guest spends;
+// costValueCents = what it costs the owner (frozen onto each redemption).
+export const rewardCreateSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  description: optionalTrimmed(300),
+  pointsCost: z.number().int().min(1).max(1_000_000),
+  costValueCents: z.number().int().min(0).max(10_000_000).optional().default(0),
+  active: z.boolean().optional().default(true),
+});
+
+export const rewardUpdateSchema = rewardCreateSchema.partial();
+
+export const redemptionCreateSchema = z.object({
+  rewardId: z.string().trim().min(1).max(60),
+});
+
 export const customerListQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   tier: z.enum(TIERS).optional(),

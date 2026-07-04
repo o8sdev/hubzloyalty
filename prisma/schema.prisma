@@ -84,6 +84,7 @@ model Business {
   visits       Visit[]
   reviews      Review[]
   rewards      Reward[]
+  redemptions  Redemption[]
   campaigns    Campaign[]
   rewardClaims RewardClaim[]
   checkins     Checkin[]
@@ -269,30 +270,45 @@ model Review {
   @@index([businessId, channel, createdAt])
 }
 
+// A redeemable reward in a business's loyalty catalog. `pointsCost` is what
+// the guest spends; `costValueCents` is what it costs the owner (COGS) —
+// frozen onto each Redemption so accounting reports survive later edits.
 model Reward {
-  id          String   @id @default(cuid())
-  businessId  String
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  pointsCost  Int
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  businessId     String
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  pointsCost     Int
+  costValueCents Int      @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   redemptions Redemption[]
 
-  @@index([businessId])
+  @@index([businessId, active])
 }
 
+// A points redemption — the guest spent points on a reward. The deduction is
+// posted to PointsLedger (type REDEEM) in the same transaction. rewardName /
+// pointsSpent / valueCents are FROZEN at redemption so the record is immutable
+// even if the reward is later edited or deleted (rewardId → SetNull).
 model Redemption {
-  id          String   @id @default(cuid())
-  rewardId    String
-  reward      Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  pointsSpent Int
-  redeemedAt  DateTime @default(now())
+  id               String   @id @default(cuid())
+  businessId       String
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  rewardId         String?
+  reward           Reward?  @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  rewardName       String // frozen
+  pointsSpent      Int // frozen
+  valueCents       Int      @default(0) // frozen cost value
+  redeemedByUserId String? // staff/owner who handed it over
+  redeemedAt       DateTime @default(now())
 
+  @@index([businessId, redeemedAt])
   @@index([customerId])
 }
 

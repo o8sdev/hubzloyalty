@@ -39,6 +39,32 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-04 — Session 19b (Windows): rewards catalog + redemption (Phase 3 step 2a)
+- **Guests can now SPEND points.** Rewards catalog + the redemption half of the
+  loop, on top of the Session 19 ledger.
+- **Rewards catalog** (owner): `Reward` gained `costValueCents` (COGS, frozen
+  onto redemptions) + `updatedAt`; CRUD at `/api/business/rewards[/id]`
+  (GET/POST/PATCH/DELETE, owner/admin); Settings → **Rewards** card
+  (`rewards-catalog.tsx`) to add/edit/activate/deactivate/delete. Deleting keeps
+  history (Redemption.rewardId → SetNull; name frozen).
+- **Redemption** (`Redemption` reworked: businessId, nullable rewardId, frozen
+  rewardName/pointsSpent/valueCents, redeemedByUserId). `POST /api/customers/
+  [id]/redemptions { rewardId }` — staff redeem for a guest from the profile.
+  Atomic + overspend-proof: a compare-and-set `updateMany(loyaltyPoints >= cost
+  → decrement)` (count!=1 ⇒ "not enough points"), then a Redemption row + a
+  REDEEM ledger entry (delta = −cost, frozen valueCents) in the same tx. The
+  row lock serializes concurrent redemptions so balanceAfter is exact; the
+  ledger delta matches the decrement so the reconciliation invariant holds.
+- **UI:** "Redeem reward" picker on the guest profile (unaffordable rewards
+  disabled) + a Redemptions history section. Migration
+  `20260704190000_rewards_catalog_redemptions` applied live (via MCP; Reward
+  & Redemption were empty). Build passes.
+- **NEXT (step 2b/3):** guest-app SELF-redeem (mint a code in the wallet →
+  staff confirm at `/counter` — extend the counter code resolver with a third
+  code type) + guest wallet rewards UI (progress bars); then owner LIABILITY /
+  statement report from the ledger (outstanding points + value given +
+  breakage). Then automatic bonuses (birthday/tier) + points expiry job.
+
 ### 2026-07-04 — Session 19 (Windows): loyalty POINTS LEDGER (Phase 3 step 1)
 - **Points economy design agreed** with the user: two currencies — TIER =
   lifetime visits (status, never drops), POINTS = spendable balance (earned,

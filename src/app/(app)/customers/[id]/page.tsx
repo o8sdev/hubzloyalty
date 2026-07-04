@@ -21,6 +21,7 @@ import {
 import { tagsToArray } from "@/lib/validation";
 import { avatarTone, initials } from "@/lib/avatar";
 import { LogVisitButton } from "../log-visit-button";
+import { RedeemRewardButton } from "../redeem-reward-button";
 import { DeleteCustomerButton } from "../delete-customer-button";
 
 export default async function CustomerDetailPage({
@@ -32,14 +33,22 @@ export default async function CustomerDetailPage({
   const { id } = await params;
   const isOwner = session.role === "OWNER";
 
-  const customer = await db.customer.findFirst({
-    where: { id, businessId: session.businessId },
-    include: {
-      visits: { orderBy: { visitedAt: "desc" }, take: 10 },
-      reviews: { orderBy: { createdAt: "desc" }, take: 10 },
-      rewardClaims: { where: { kind: "WELCOME" }, take: 1 },
-    },
-  });
+  const [customer, activeRewards] = await Promise.all([
+    db.customer.findFirst({
+      where: { id, businessId: session.businessId },
+      include: {
+        visits: { orderBy: { visitedAt: "desc" }, take: 10 },
+        reviews: { orderBy: { createdAt: "desc" }, take: 10 },
+        rewardClaims: { where: { kind: "WELCOME" }, take: 1 },
+        redemptions: { orderBy: { redeemedAt: "desc" }, take: 10 },
+      },
+    }),
+    db.reward.findMany({
+      where: { businessId: session.businessId, active: true },
+      orderBy: { pointsCost: "asc" },
+      select: { id: true, name: true, pointsCost: true },
+    }),
+  ]);
   if (!customer) notFound();
 
   const welcomeClaim = customer.rewardClaims[0] ?? null;
@@ -84,6 +93,11 @@ export default async function CustomerDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <RedeemRewardButton
+            customerId={customer.id}
+            balance={customer.loyaltyPoints}
+            rewards={activeRewards}
+          />
           <LinkButton variant="secondary" href={`/customers/${customer.id}/edit`}>
             Edit
           </LinkButton>
@@ -135,6 +149,33 @@ export default async function CustomerDetailPage({
             >
               {welcomeClaimStatus === "PENDING" ? "waiting to be claimed" : welcomeClaimStatus?.toLowerCase()}
             </Badge>
+          </CardBody>
+        </Card>
+      ) : null}
+
+      {customer.redemptions.length > 0 ? (
+        <Card className="mt-6">
+          <CardHeader title="Redemptions" description="Points spent on rewards" />
+          <CardBody className="px-0 py-0">
+            <ul className="divide-y divide-ink/5">
+              {customer.redemptions.map((rd) => (
+                <li
+                  key={rd.id}
+                  className="flex items-start justify-between gap-4 px-5 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-ink">{rd.rewardName}</p>
+                    <p className="mt-0.5 text-xs text-ink-faint">
+                      {formatDateTime(rd.redeemedAt)}
+                      {rd.valueCents > 0 ? ` · cost ${formatMoney(rd.valueCents)}` : ""}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-sm font-semibold text-brand-700">
+                    −{rd.pointsSpent} pts
+                  </p>
+                </li>
+              ))}
+            </ul>
           </CardBody>
         </Card>
       ) : null}

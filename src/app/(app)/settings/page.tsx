@@ -10,6 +10,7 @@ import {
 } from "@/components/ui";
 import { SettingsForm } from "./settings-form";
 import { LoyaltyForm } from "./loyalty-form";
+import { RewardsCatalog } from "./rewards-catalog";
 import { NotificationsForm } from "./notifications-form";
 import { WelcomeRewardForm } from "./welcome-reward-form";
 import { VisitVerificationForm } from "./visit-verification-form";
@@ -40,7 +41,7 @@ function parseSocialLinks(raw: string | null): SocialLinks {
 
 export default async function SettingsPage() {
   const session = await requireSession();
-  const [business, members] = await Promise.all([
+  const [business, members, rewards] = await Promise.all([
     db.business.findUnique({
       where: { id: session.businessId },
       include: {
@@ -51,6 +52,18 @@ export default async function SettingsPage() {
       where: { businessId: session.businessId },
       orderBy: [{ role: "asc" }, { createdAt: "asc" }],
       select: { id: true, name: true, email: true, role: true },
+    }),
+    db.reward.findMany({
+      where: { businessId: session.businessId },
+      orderBy: [{ active: "desc" }, { pointsCost: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        pointsCost: true,
+        costValueCents: true,
+        active: true,
+      },
     }),
   ]);
   if (!business) notFound();
@@ -134,6 +147,16 @@ export default async function SettingsPage() {
                 vipThreshold: business.vipThreshold,
               }}
             />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Rewards"
+            description="What guests can spend their points on. Staff redeem these from a guest's profile; the points are deducted and logged."
+          />
+          <CardBody>
+            <RewardsCatalog canEdit={canEdit} initial={rewards} />
           </CardBody>
         </Card>
 
