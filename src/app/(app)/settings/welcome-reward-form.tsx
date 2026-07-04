@@ -13,6 +13,7 @@ export function WelcomeRewardForm({
     welcomeRewardEnabled: boolean;
     welcomeRewardText: string;
     welcomeRewardExpiryDays: number;
+    welcomeRewardValueCents: number;
   };
 }) {
   const router = useRouter();
@@ -20,6 +21,12 @@ export function WelcomeRewardForm({
   const [text, setText] = useState(initial.welcomeRewardText);
   const [expiryDays, setExpiryDays] = useState(
     String(initial.welcomeRewardExpiryDays)
+  );
+  // Shown/edited in currency units; stored as integer cents.
+  const [value, setValue] = useState(
+    initial.welcomeRewardValueCents > 0
+      ? (initial.welcomeRewardValueCents / 100).toFixed(2)
+      : ""
   );
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -40,6 +47,13 @@ export function WelcomeRewardForm({
       return;
     }
 
+    const valueCents =
+      value.trim() === "" ? 0 : Math.round(Number(value) * 100);
+    if (!Number.isFinite(valueCents) || valueCents < 0) {
+      setError("Enter a valid cost value (e.g. 0.80)");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/business", {
@@ -49,6 +63,7 @@ export function WelcomeRewardForm({
           welcomeRewardEnabled: enabled,
           welcomeRewardText: text.trim(),
           welcomeRewardExpiryDays: days,
+          welcomeRewardValueCents: valueCents,
         }),
       });
       const data: { error?: string } = await res.json();
@@ -90,7 +105,7 @@ export function WelcomeRewardForm({
         </span>
       </label>
 
-      <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
+      <div className="grid gap-4 sm:grid-cols-[1fr_120px_130px]">
         <div>
           <Label htmlFor="wr-text">The gift</Label>
           <Input
@@ -116,7 +131,25 @@ export function WelcomeRewardForm({
             onChange={(e) => setExpiryDays(e.target.value)}
           />
         </div>
+        <div>
+          <Label htmlFor="wr-value">Cost to you</Label>
+          <Input
+            id="wr-value"
+            type="number"
+            min={0}
+            step="0.01"
+            disabled={!canEdit}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="0.80"
+          />
+        </div>
       </div>
+      <p className="-mt-1 text-xs text-slate-400">
+        &ldquo;Cost to you&rdquo; is optional — it&apos;s what the gift costs you
+        (not the guest), frozen onto each hand-out so your loyalty ledger can
+        total what you&apos;ve given away.
+      </p>
 
       <p className="text-xs text-slate-400">
         Granted for joining your guest list — never for the review itself, and

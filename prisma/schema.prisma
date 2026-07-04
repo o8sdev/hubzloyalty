@@ -46,6 +46,9 @@ model Business {
   welcomeRewardEnabled    Boolean @default(false)
   welcomeRewardText       String? // e.g. "A free espresso — on us"
   welcomeRewardExpiryDays Int     @default(14)
+  // Owner-set cost of the welcome gift (integer cents) — frozen onto each
+  // grant so the loyalty ledger can total the value handed out (accounting).
+  welcomeRewardValueCents Int     @default(0)
 
   // Visit verification policy: points credit ONLY when staff confirm a
   // check-in code (human approval on every earning visit). Cooldown/cap
@@ -86,6 +89,7 @@ model Business {
   checkins     Checkin[]
   auditLogs    AuditLog[]
   photos       BusinessPhoto[]
+  ledger       PointsLedger[]
 }
 
 // Gallery photos shown on the guest venue page. The MAIN photo is
@@ -208,6 +212,7 @@ model Customer {
   redemptions  Redemption[]
   rewardClaims RewardClaim[]
   checkins     Checkin[]
+  ledger       PointsLedger[]
 
   // At most one membership per guest per business (nulls stay distinct, so
   // walk-ins are unaffected). This is the find-or-create key when a guest scans.
@@ -370,6 +375,7 @@ model RewardClaim {
   kind       String   @default("WELCOME")
   code       String   @unique // short unambiguous bearer code, stored normalized (no dashes)
   rewardText String // frozen at grant time — owner may change the config later
+  valueCents Int      @default(0) // frozen cost of the gift for accounting (see PointsLedger)
   status     String   @default("PENDING") // PENDING | REDEEMED
   expiresAt  DateTime?
   redeemedAt DateTime?
@@ -379,6 +385,36 @@ model RewardClaim {
   // One welcome reward per customer, guaranteed at the schema level.
   @@unique([customerId, kind])
   @@index([businessId, status, createdAt])
+}
+
+// Append-only financial ledger of every loyalty movement — the source of
+// truth for a guest's points. `Customer.loyaltyPoints` is a CACHE that must
+// always equal SUM(delta) for that customer; every earn / redeem / bonus /
+// expiry writes a row here in the SAME transaction that moves the cache, so
+// the two never drift. Rows are NEVER updated or deleted — a correction is a
+// new REVERSAL row. `valueCents` freezes the cash value of the movement (e.g.
+// the cost of a reward handed over) so accounting reports survive later edits
+// to the reward. Non-points events (a free-item gift) carry delta 0 + a value.
+model PointsLedger {
+  id              String   @id @default(cuid())
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  // EARN | REDEEM | WELCOME_BONUS | BIRTHDAY_BONUS | TIER_BONUS | EXPIRE | MANUAL_ADJUST | REVERSAL
+  type            String
+  delta           Int // signed points (+earned, -spent/expired; 0 for item gifts)
+  balanceAfter    Int // the customer's cached balance immediately after this entry
+  valueCents      Int      @default(0) // frozen cash value of the movement
+  sourceType      String? // VISIT | REDEMPTION | REWARD_CLAIM | CHECKIN | CAMPAIGN | MANUAL
+  sourceId        String?
+  createdByUserId String? // staff/owner who confirmed it; null for automatic/system
+  note            String?
+  createdAt       DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([customerId, createdAt])
+  @@index([businessId, type, createdAt])
 }
 
 // A pending visit awaiting human approval. The funnel mints one per earning

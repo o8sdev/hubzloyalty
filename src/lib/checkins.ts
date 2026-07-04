@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { generateRewardCode } from "@/lib/onetime";
+import { recordLedgerRow } from "@/lib/ledger";
 
 // ---------------------------------------------------------------------------
 // Staff-confirmed check-ins: the funnel mints a short-lived code; a human
@@ -46,21 +47,26 @@ export async function creditVisit(
     customerId: string;
     loyalty: LoyaltyNumbers;
     note?: string;
+    /** Staff/owner who confirmed the code — recorded on the ledger row. */
+    earnedByUserId?: string | null;
   }
 ): Promise<void> {
-  await tx.visit.create({
+  const points = opts.loyalty.pointsPerVisit;
+  const visit = await tx.visit.create({
     data: {
       businessId: opts.businessId,
       customerId: opts.customerId,
       amountCents: 0,
-      pointsEarned: opts.loyalty.pointsPerVisit,
+      pointsEarned: points,
       note: opts.note ?? "QR check-in",
     },
   });
-  await tx.$executeRaw`
+  // One statement: bump visits/points/tier and RETURN the new balance so the
+  // ledger row's balanceAfter is exact (no extra round trip, no drift).
+  const rows = await tx.$queryRaw<{ loyaltyPoints: number }[]>`
     UPDATE "Customer" SET
       "totalVisits"  = "totalVisits" + 1,
-      "loyaltyPoints" = "loyaltyPoints" + ${opts.loyalty.pointsPerVisit},
+      "loyaltyPoints" = "loyaltyPoints" + ${points},
       "lastVisitAt"  = now(),
       "updatedAt"    = now(),
       "tier" = CASE
@@ -69,7 +75,21 @@ export async function creditVisit(
         WHEN "totalVisits" + 1 >= ${opts.loyalty.silverThreshold} THEN 'SILVER'
         ELSE 'BRONZE'
       END
-    WHERE id = ${opts.customerId}`;
+    WHERE id = ${opts.customerId}
+    RETURNING "loyaltyPoints"`;
+  const balanceAfter = rows[0]?.loyaltyPoints ?? points;
+
+  await recordLedgerRow(tx, {
+    businessId: opts.businessId,
+    customerId: opts.customerId,
+    type: "EARN",
+    delta: points,
+    balanceAfter,
+    sourceType: "VISIT",
+    sourceId: visit.id,
+    createdByUserId: opts.earnedByUserId ?? null,
+    note: opts.note ?? "QR check-in",
+  });
 }
 
 /**

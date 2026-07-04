@@ -9,6 +9,7 @@ import {
 } from "@/lib/http";
 import { normalizeRewardCode } from "@/lib/onetime";
 import { creditVisit } from "@/lib/checkins";
+import { postLedgerEntry } from "@/lib/ledger";
 import { actorFromSession, recordAudit } from "@/lib/audit";
 
 /** Best-effort "First Last" for a customer, for the audit summary. */
@@ -62,7 +63,13 @@ export async function POST(
     // ---- Gift code path -----------------------------------------------
     const claim = await db.rewardClaim.findFirst({
       where: { code: normalized, businessId },
-      select: { id: true, customerId: true, status: true, expiresAt: true },
+      select: {
+        id: true,
+        customerId: true,
+        status: true,
+        expiresAt: true,
+        valueCents: true,
+      },
     });
     if (claim) {
       if (claim.status === "REDEEMED") return badRequest("Already redeemed");
@@ -82,6 +89,20 @@ export async function POST(
             },
           });
           if (redeemed.count !== 1) throw new AlreadyHandled("Already redeemed");
+
+          // Record the gift hand-over on the ledger (delta 0 — it's a free
+          // item, not points — with its frozen cost value for accounting).
+          await postLedgerEntry(tx, {
+            businessId,
+            customerId: claim.customerId,
+            type: "WELCOME_BONUS",
+            delta: 0,
+            valueCents: claim.valueCents,
+            sourceType: "REWARD_CLAIM",
+            sourceId: claim.id,
+            createdByUserId: userId,
+            note: "Welcome gift handed over",
+          });
 
           // First-visit ride-along: confirm the pending check-in minted by
           // the same funnel completion, if one is still open.
@@ -109,6 +130,7 @@ export async function POST(
                 businessId,
                 customerId: claim.customerId,
                 loyalty,
+                earnedByUserId: userId,
               });
               visitCredited = true;
             }
@@ -155,6 +177,7 @@ export async function POST(
           businessId,
           customerId: checkin.customerId,
           loyalty,
+          earnedByUserId: userId,
         });
       },
       { maxWait: 10_000, timeout: 30_000 }

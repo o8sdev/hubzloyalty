@@ -1,7 +1,8 @@
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { json, notFound, parseBody, requireApiSession, serverError } from "@/lib/http";
-import { tierForVisits, visitCreateSchema } from "@/lib/validation";
+import { visitCreateSchema } from "@/lib/validation";
+import { recordLedgerRow } from "@/lib/ledger";
 import { actorFromSession, recordAudit } from "@/lib/audit";
 
 export async function POST(
@@ -40,7 +41,7 @@ export async function POST(
     // Tier derives from the post-increment count returned by the update, so
     // concurrent visit logs can't leave tier inconsistent with totalVisits.
     const result = await db.$transaction(async (tx) => {
-      await tx.visit.create({
+      const visit = await tx.visit.create({
         data: {
           businessId,
           customerId: customer.id,
@@ -49,19 +50,48 @@ export async function POST(
           note,
         },
       });
-      const updated = await tx.customer.update({
-        where: { id: customer.id },
-        data: {
-          totalVisits: { increment: 1 },
-          totalSpendCents: { increment: amountCents },
-          loyaltyPoints: { increment: loyalty.pointsPerVisit },
-          lastVisitAt: new Date(),
-        },
+      // One statement: bump visits/spend/points AND recompute tier from the
+      // live in-row count (a separate tier UPDATE from a JS-held count could
+      // regress the tier under concurrent logs). RETURNING gives the exact
+      // post-move balance for the ledger row.
+      const rows = await tx.$queryRaw<
+        Array<{
+          id: string;
+          firstName: string;
+          lastName: string | null;
+          loyaltyPoints: number;
+        }>
+      >`
+        UPDATE "Customer" SET
+          "totalVisits"     = "totalVisits" + 1,
+          "totalSpendCents" = "totalSpendCents" + ${amountCents},
+          "loyaltyPoints"   = "loyaltyPoints" + ${loyalty.pointsPerVisit},
+          "lastVisitAt"     = now(),
+          "updatedAt"       = now(),
+          "tier" = CASE
+            WHEN "totalVisits" + 1 >= ${loyalty.vipThreshold} THEN 'VIP'
+            WHEN "totalVisits" + 1 >= ${loyalty.goldThreshold} THEN 'GOLD'
+            WHEN "totalVisits" + 1 >= ${loyalty.silverThreshold} THEN 'SILVER'
+            ELSE 'BRONZE'
+          END
+        WHERE id = ${customer.id}
+        RETURNING "id", "firstName", "lastName", "loyaltyPoints"`;
+      const row = rows[0];
+
+      // Same earn, same ledger: a manual visit posts an EARN entry so the
+      // cache stays equal to SUM(delta).
+      await recordLedgerRow(tx, {
+        businessId,
+        customerId: customer.id,
+        type: "EARN",
+        delta: loyalty.pointsPerVisit,
+        balanceAfter: row?.loyaltyPoints ?? loyalty.pointsPerVisit,
+        sourceType: "VISIT",
+        sourceId: visit.id,
+        createdByUserId: auth.session.userId,
+        note: note ?? "Manual visit",
       });
-      return tx.customer.update({
-        where: { id: customer.id },
-        data: { tier: tierForVisits(updated.totalVisits, loyalty) },
-      });
+      return row;
     });
 
     after(() =>

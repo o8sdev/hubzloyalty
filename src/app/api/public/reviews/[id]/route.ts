@@ -80,6 +80,7 @@ export async function PATCH(
           welcomeRewardEnabled: true,
           welcomeRewardText: true,
           welcomeRewardExpiryDays: true,
+          welcomeRewardValueCents: true,
           earnCooldownHours: true,
           maxEarnPerDay: true,
         },
@@ -202,6 +203,9 @@ export async function PATCH(
                       kind: "WELCOME",
                       code: rewardCode,
                       rewardText: config.welcomeRewardText,
+                      // Freeze the gift's cost value for accounting (the owner
+                      // may change the config later; this record must not).
+                      valueCents: config.welcomeRewardValueCents,
                       expiresAt,
                     },
                   });

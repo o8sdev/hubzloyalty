@@ -25,9 +25,10 @@ Prisma 6, Supabase Postgres + Supabase Auth (project `ghubhzbvkfjhtywvtvuj`,
 eu-west-1). One typeface product-wide: **Space Grotesk** (`--font-app`).
 
 **Roadmap position:** Phases 1 & 2 done, plus the platform admin panel,
-invite-only onboarding, staff-confirmed check-ins, welcome rewards, and an
-installable PWA. Only Phase 2 item left is the first Vercel deploy. Phases
-and their build triggers: `docs/04-roadmap.md`.
+invite-only onboarding, staff-confirmed check-ins, welcome rewards, an
+installable PWA, the guest app (G1–G4), and **Phase 3 step 1 — the points
+ledger** (accounting-grade; earn wired, redemption is the next step). Only
+Phase 2 item left is the first Vercel deploy. Phases: `docs/04-roadmap.md`.
 
 **Onboarding is INVITE-ONLY** (as of Session 5): no self-registration.
 Prospects submit `/request-demo`; the platform admin works the inbox at
@@ -37,6 +38,45 @@ owners set their own password at first login.
 ---
 
 ## Session log (newest first)
+
+### 2026-07-04 — Session 19 (Windows): loyalty POINTS LEDGER (Phase 3 step 1)
+- **Points economy design agreed** with the user: two currencies — TIER =
+  lifetime visits (status, never drops), POINTS = spendable balance (earned,
+  and later burned on rewards). Redemption will be staff-confirmed at the
+  counter. Owner sets earn rate + reward costs (the economy knobs).
+- **Built the append-only points LEDGER** (`PointsLedger` table + `src/lib/
+  ledger.ts`): every points movement is a row (type EARN/REDEEM/WELCOME_BONUS/
+  …, signed `delta`, `balanceAfter`, frozen `valueCents` for accounting,
+  source, and the staff who confirmed it). `Customer.loyaltyPoints` is now a
+  CACHE that always equals SUM(delta) — every earn/redeem writes its ledger row
+  IN THE SAME transaction that moves the cache. `reconcileCustomer()` is the
+  integrity check. Rationale: accounting-grade tracking (the user's ask — every
+  bonus given must be stored with a value).
+- **Wired all earn paths:** counter check-in confirm + the first-visit gift
+  ride-along + the manual visit-log all post EARN rows; the welcome gift freezes
+  its cost (`Business.welcomeRewardValueCents`, set in Settings → Welcome
+  reward → "Cost to you"; `RewardClaim.valueCents`) at grant and posts a
+  WELCOME_BONUS value row on hand-over.
+- Migration `20260704181320_loyalty_points_ledger` applied LIVE via MCP (Prisma
+  `migrate deploy` couldn't hold the pooler — P1017; MCP path is reliable).
+  Backfill (`scripts/backfill-ledger.ts`, idempotent) reconciled all existing
+  balances → verified in DB: **58 customers, 0 unreconciled.** Build passes.
+- **Adversarial review (workflow): 3 findings.** FIXED: manual visit-log tier
+  recomputed atomically (was a stale separate UPDATE). FLAGGED for a focused
+  follow-up (pre-existing FUNNEL races, not ledger bugs): (1) no DB unique on
+  Customer(businessId,phone/email) → simultaneous same-phone funnel completions
+  can create duplicate customers → duplicate gift/points; (3) a reviewId P2002
+  500s instead of reusing. Fix = partial unique indexes + graceful P2002.
+- **NEXT (step 2+):** rewards catalog (owner CRUD, uses the Reward table +
+  costValueCents) → redemption loop (guest mints code → counter confirm →
+  atomic deduct + REDEEM ledger row) → guest wallet rewards UI → owner
+  liability/statement report. Then automatic bonuses + expiry.
+- ⚠ Env note: this Windows box's `.env` was rebuilt this session (real eu-west-1
+  DB password + Supabase keys; `DATABASE_URL` uses
+  `connection_limit=10&pool_timeout=60&connect_timeout=30` — `=1` timed out the
+  dashboard's Promise.all). Admin login: rhlhabibli@gmail.com. `demo@` was
+  deleted in an earlier wipe. SUPABASE_SERVICE_ROLE_KEY still blank (needed only
+  for admin provisioning).
 
 ### 2026-07-04 — Session 18 (Mac): Phase G4 — in-app reviews (guest app feature-complete)
 - **Guest reviews** (verified live: post → shows in the venue's rating).

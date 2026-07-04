@@ -180,6 +180,7 @@ export default async function SettingsPage() {
                 welcomeRewardEnabled: business.welcomeRewardEnabled,
                 welcomeRewardText: business.welcomeRewardText ?? "",
                 welcomeRewardExpiryDays: business.welcomeRewardExpiryDays,
+                welcomeRewardValueCents: business.welcomeRewardValueCents,
               }}
             />
           </CardBody>

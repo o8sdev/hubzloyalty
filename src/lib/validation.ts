@@ -147,6 +147,9 @@ const businessUpdateFields = z.object({
     .optional()
     .or(z.literal("").transform(() => null)),
   welcomeRewardExpiryDays: z.number().int().min(1).max(365).optional(),
+  // Owner-set cost of the welcome gift (integer cents) — frozen onto each
+  // grant so the loyalty ledger can total value handed out (accounting).
+  welcomeRewardValueCents: z.number().int().min(0).max(1_000_000).optional(),
   // Visit verification policy (staff-confirmed check-ins).
   earnCooldownHours: z.number().int().min(0).max(72).optional(),
   maxEarnPerDay: z.number().int().min(1).max(10).optional(),
