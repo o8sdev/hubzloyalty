@@ -32,12 +32,15 @@ export async function POST(req: Request) {
     if (!business) return notFound("We couldn't find that place.");
     if (business.suspendedAt) return forbidden();
 
+    // Anti-fake: only guests with a CONFIRMED visit may review. `totalVisits`
+    // is incremented solely when staff confirm a check-in (creditVisit), so a
+    // guest who merely scanned (a pending, unconfirmed check-in) is blocked.
     const customer = await db.customer.findFirst({
       where: { businessId: business.id, guestId },
-      select: { id: true },
+      select: { id: true, totalVisits: true },
     });
-    if (!customer) {
-      return badRequest("Check in at this place before leaving a review.");
+    if (!customer || customer.totalVisits < 1) {
+      return badRequest("You can review here after a confirmed check-in.");
     }
 
     // Low ratings enter the owner's inbox as NEW, like the funnel.

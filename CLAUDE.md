@@ -39,8 +39,11 @@ Supabase Postgres + Supabase Auth (project ghubhzbvkfjhtywvtvuj, eu-west-1).
   the Google link and the private note option; emphasis may differ). Never
   award points for reviews (funnel OR in-app `channel="APP"` reviews).
   In-app guest reviews are first-party public content shown in Discover — never
-  gated by rating. Marketing consent is opt-in only and never downgraded from
-  the public funnel or the guest app.
+  gated by rating, and **only writable after a CONFIRMED check-in** (the guest's
+  `Customer.totalVisits > 0`, which is incremented solely by `creditVisit` on
+  staff confirmation) so a mere pending scan can't fake a review. Marketing
+  consent is opt-in only and never downgraded from the public funnel or the
+  guest app.
 - **Schema:** enum-like values stay Strings validated in
   `src/lib/validation.ts` (no Prisma enums/Json — keeps churn low); money is
   integer cents. New tables get `ENABLE ROW LEVEL SECURITY` in their

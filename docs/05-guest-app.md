@@ -117,9 +117,10 @@ it rather than duplicate.
   membership + mint check-in via the shared cooldown/cap engine) → staff confirm
   → points. Wallet (`/guest/wallet`) shows memberships + live pending codes.
 - **G4 — Reviews. ✅ DONE.** In-app first-party reviews (`POST /api/guest/reviews`,
-  membership-gated, one editable review per guest per business, never gated by
-  rating / never points) shown publicly and driving the venue's average.
-  (Rewards catalog beyond the welcome gift is future.)
+  one editable review per guest per business, never gated by rating / never
+  points) shown publicly and driving the venue's average. **Only writable after
+  a CONFIRMED check-in** (`Customer.totalVisits > 0`) so visits can't be faked
+  into reviews. (Rewards catalog beyond the welcome gift is future.)
 - **G5 — Native store apps.** Capacitor wrap (needs a live deploy first) + native
   camera + push.
 

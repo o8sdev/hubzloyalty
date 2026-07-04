@@ -128,7 +128,7 @@ export default async function GuestVenuePage({
           <span className="font-normal text-ink-faint">({v.reviewCount})</span>
         </h2>
 
-        {ctx?.hasMembership ? (
+        {ctx?.canReview ? (
           <div className="mb-3">
             <ReviewForm
               slug={v.slug}
@@ -139,6 +139,10 @@ export default async function GuestVenuePage({
               }
             />
           </div>
+        ) : ctx?.hasCheckedIn ? (
+          <p className="mb-3 rounded-xl border border-dashed border-ink/15 bg-white p-3 text-center text-xs text-ink-faint">
+            Once staff confirm your check-in, you&apos;ll be able to leave a review.
+          </p>
         ) : guest ? (
           <p className="mb-3 rounded-xl border border-dashed border-ink/15 bg-white p-3 text-center text-xs text-ink-faint">
             Check in here to leave a review.
