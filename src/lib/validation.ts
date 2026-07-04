@@ -10,6 +10,17 @@ export const TIERS = ["BRONZE", "SILVER", "GOLD", "VIP"] as const;
 export const REVIEW_STATUSES = ["NEW", "RESOLVED"] as const;
 export const CUSTOMER_SOURCES = ["MANUAL", "QR", "IMPORT"] as const;
 
+export const BUSINESS_CATEGORIES = [
+  "Coffee",
+  "Restaurant",
+  "Bakery",
+  "Bar",
+  "Dessert",
+  "Fast food",
+  "Grocery",
+  "Other",
+] as const;
+
 export type Tier = (typeof TIERS)[number];
 
 /**
@@ -140,6 +151,12 @@ const businessUpdateFields = z.object({
   earnCooldownHours: z.number().int().min(0).max(72).optional(),
   maxEarnPerDay: z.number().int().min(1).max(10).optional(),
   askTableNumber: z.boolean().optional(),
+  // Guest-app discovery listing (opt-in). Photos are handled separately via
+  // /api/business/media; these are the text fields shown on the venue page.
+  listed: z.boolean().optional(),
+  category: z.string().trim().max(40).optional().or(z.literal("").transform(() => null)),
+  description: z.string().trim().max(600).optional().or(z.literal("").transform(() => null)),
+  city: z.string().trim().max(80).optional().or(z.literal("").transform(() => null)),
 });
 
 /** Owner invites a staff member (OTP provisioning, like admin onboarding). */

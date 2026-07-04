@@ -13,6 +13,7 @@ import { LoyaltyForm } from "./loyalty-form";
 import { NotificationsForm } from "./notifications-form";
 import { WelcomeRewardForm } from "./welcome-reward-form";
 import { VisitVerificationForm } from "./visit-verification-form";
+import { VenueListing } from "./venue-listing";
 import { TeamCard } from "./team-card";
 import { ChangePasswordForm } from "@/components/change-password-form";
 
@@ -42,6 +43,9 @@ export default async function SettingsPage() {
   const [business, members] = await Promise.all([
     db.business.findUnique({
       where: { id: session.businessId },
+      include: {
+        photos: { orderBy: { position: "asc" }, select: { id: true, url: true } },
+      },
     }),
     db.user.findMany({
       where: { businessId: session.businessId },
@@ -92,6 +96,28 @@ export default async function SettingsPage() {
             />
           </CardBody>
         </Card>
+
+        {canEdit ? (
+          <Card>
+            <CardHeader
+              title="Venue listing & photos"
+              description="Your page in the guest app's Discover directory — opt in, add photos, and describe your place."
+            />
+            <CardBody>
+              <VenueListing
+                initial={{
+                  listed: business.listed,
+                  category: business.category ?? "",
+                  description: business.description ?? "",
+                  city: business.city ?? "",
+                  coverImageUrl: business.coverImageUrl,
+                  logoUrl: business.logoUrl,
+                  photos: business.photos,
+                }}
+              />
+            </CardBody>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader

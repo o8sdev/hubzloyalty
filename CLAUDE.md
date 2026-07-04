@@ -21,10 +21,26 @@ Supabase Postgres + Supabase Auth (project ghubhzbvkfjhtywvtvuj, eu-west-1).
   Public endpoints (`/api/public/*`) resolve business from slug/row, never
   from client input. Only `/api/admin/*` (behind `requireApiPlatformAdmin()`)
   may query cross-tenant.
+- **Guest side (consumer app, in progress — see docs/05-guest-app.md).** A
+  third user class alongside business members and platform admins: `Guest`
+  (own table, `authId` → auth.users, no businessId). Guests **self-register**
+  through a *controlled server endpoint* (`supabaseAdmin().auth.admin.*`,
+  keeping Supabase `disable_signup` ON) — this is a SEPARATE door from the
+  invite-only *business* onboarding above; never let a guest signup create a
+  business member or reach `/dashboard`|`/admin`, and never let a business/admin
+  session reach `/guest/*`. New guest tenancy rule: `/api/guest/*` is scoped by
+  `session.guestId` — a guest may read the PUBLIC directory (businesses where
+  `listed = true`) and read/write only their OWN cross-business records (their
+  `Customer` rows where `guestId = session.guestId`, and those rows' checkins/
+  visits/reviews). One `Guest` ↔ many per-business `Customer` memberships
+  (`@@unique([businessId, guestId])`); a scan find-or-creates the membership,
+  then reuses the existing staff-confirmed check-in + loyalty engine unchanged.
 - **Compliance:** the review funnel must stay UNGATED (all ratings see both
   the Google link and the private note option; emphasis may differ). Never
-  award points for reviews. Marketing consent is opt-in only and never
-  downgraded from the public funnel.
+  award points for reviews (funnel OR in-app `channel="APP"` reviews).
+  In-app guest reviews are first-party public content shown in Discover — never
+  gated by rating. Marketing consent is opt-in only and never downgraded from
+  the public funnel or the guest app.
 - **Schema:** enum-like values stay Strings validated in
   `src/lib/validation.ts` (no Prisma enums/Json — keeps churn low); money is
   integer cents. New tables get `ENABLE ROW LEVEL SECURITY` in their

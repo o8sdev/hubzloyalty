@@ -38,6 +38,27 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-04 — Session 15 (Mac): guest side — foundation + venue pages (Phase G)
+- **New direction: consumer guest app** (full plan in `docs/05-guest-app.md`).
+  Guests get accounts, a Discover directory, scan-to-check-in, per-business
+  loyalty, and reviews. Mobile = the same PWA (guest surface is mobile-first);
+  native store apps = later Capacitor.
+- **Schema (added, `prisma validate` clean, NOT yet migrated):** `Guest` table
+  (authId→auth.users, no businessId); `Customer.guestId` + `@@unique([businessId,
+  guestId])` (one guest ↔ many per-business memberships — reuses the loyalty
+  engine); `Business` discovery fields (listed/category/description/city/lat/lng/
+  coverImageUrl); `Review.guestId`+`channel` (FUNNEL|APP); `BusinessPhoto`
+  gallery table (cap in API). CLAUDE.md guest rule + tenancy added.
+- **Guest shell + venue pages (scaffold, mock data, PUBLIC for now):**
+  `/guest` layout + bottom tabs (Discover/Scan/Wallet/Profile); appealing
+  clickable **Discover**; interactive **venue detail** `/guest/business/[slug]`
+  (hero, logo, your-loyalty-here + progress, swipeable **photo gallery w/
+  lightbox**, about/info, reviews, scan CTA). Verified: renders 200, 404s on
+  unknown slug.
+- **HELD (need green light):** live migration; Supabase Storage bucket + owner
+  photo-upload endpoint + owner "listing & photos" card; guest auth + session
+  separation (G1). See docs/05 "open decisions".
+
 ### 2026-07-04 — Session 14 (Mac): guest-delete safety + palette (café → modern mono+red)
 - **Mobile = the PWA (no native rebuild).** Chose to polish the existing
   responsive + installable web app rather than fork a React Native codebase

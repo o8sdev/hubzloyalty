@@ -58,6 +58,17 @@ model Business {
   // only a platform admin can raise it per business.
   staffLimit Int @default(1)
 
+  // Guest-app discovery profile. `listed` is opt-in: the business only appears
+  // in the consumer directory once the owner turns it on. Lat/lng power a
+  // "near me" sort. All nullable so existing rows need no backfill.
+  listed        Boolean @default(false)
+  category      String? // "Coffee" | "Restaurant" | "Bakery" | "Bar" | ...
+  description   String?
+  city          String?
+  latitude      Float?
+  longitude     Float?
+  coverImageUrl String?
+
   // Set by a platform admin to suspend the business: blocks member logins
   // and returns 404 on the public funnel. Null = active.
   suspendedAt DateTime?
@@ -74,6 +85,22 @@ model Business {
   rewardClaims RewardClaim[]
   checkins     Checkin[]
   auditLogs    AuditLog[]
+  photos       BusinessPhoto[]
+}
+
+// Gallery photos shown on the guest venue page. The MAIN photo is
+// Business.coverImageUrl and the LOGO is Business.logoUrl; these are the extra
+// gallery shots. The count is capped in the upload API (not the schema).
+model BusinessPhoto {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  url        String
+  caption    String?
+  position   Int      @default(0) // display order, low first
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, position])
 }
 
 // Append-only trail of meaningful actions across the platform. Owners see
@@ -127,10 +154,38 @@ model User {
   updatedAt    DateTime  @updatedAt
 }
 
+// Consumer account: a guest who installed the app, signs in with email, and
+// engages MANY businesses. Credentials/verification live in Supabase Auth
+// (auth.users); authId links. A Guest is NOT a tenant — it owns no businessId.
+// Its relationship with each business is a Customer row (Customer.guestId), so
+// one Guest maps to many per-business memberships and the existing loyalty /
+// check-in / review engine is reused unchanged. Self-registration is a separate
+// door from invite-only business onboarding (see CLAUDE.md).
+model Guest {
+  id               String   @id @default(cuid())
+  authId           String?  @unique // auth.users.id (UUID)
+  email            String   @unique
+  name             String
+  avatarUrl        String?
+  // Platform-level marketing consent; per-business consent stays on Customer.
+  marketingConsent Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  memberships Customer[] // one per business engaged
+  reviews     Review[]   // first-party (in-app) reviews authored
+
+  @@index([email])
+}
+
 model Customer {
   id               String    @id @default(cuid())
   businessId       String
   business         Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  // When set, this per-business record belongs to a registered app Guest — the
+  // guest's loyalty membership here. Null for walk-ins / QR / imports.
+  guestId          String?
+  guest            Guest?    @relation(fields: [guestId], references: [id], onDelete: SetNull)
   firstName        String
   lastName         String?
   phone            String?
@@ -154,10 +209,14 @@ model Customer {
   rewardClaims RewardClaim[]
   checkins     Checkin[]
 
+  // At most one membership per guest per business (nulls stay distinct, so
+  // walk-ins are unaffected). This is the find-or-create key when a guest scans.
+  @@unique([businessId, guestId])
   @@index([businessId, lastVisitAt])
   @@index([businessId, phone])
   @@index([businessId, tier])
   @@index([businessId, createdAt])
+  @@index([guestId])
 }
 
 model Visit {
@@ -185,6 +244,13 @@ model Review {
   business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customerId    String?
   customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  // Author when the review came from a signed-in app guest (channel APP).
+  guestId       String?
+  guest         Guest?    @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  // FUNNEL = public QR funnel (owner's private complaint inbox); APP =
+  // first-party review written in the guest app, shown publicly in Discover.
+  // COMPLIANCE: neither channel is gated and neither ever awards points.
+  channel       String    @default("FUNNEL")
   rating        Int // 1-5
   comment       String?
   clickedGoogle Boolean   @default(false)
@@ -195,6 +261,7 @@ model Review {
 
   @@index([businessId, createdAt])
   @@index([businessId, status, rating])
+  @@index([businessId, channel, createdAt])
 }
 
 model Reward {
