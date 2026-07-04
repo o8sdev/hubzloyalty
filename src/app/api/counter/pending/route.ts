@@ -25,7 +25,12 @@ export async function GET() {
       tableNumber: true,
       createdAt: true,
       customer: {
-        select: { firstName: true, lastName: true, totalVisits: true },
+        select: {
+          firstName: true,
+          lastName: true,
+          totalVisits: true,
+          tier: true,
+        },
       },
     },
   });

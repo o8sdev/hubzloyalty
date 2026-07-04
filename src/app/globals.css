@@ -76,10 +76,10 @@ body {
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Warm ember text selection product-wide (the .mkt site sets its own below). */
+/* Text selection is a neutral UI state, not an alert — ink, never red. */
 ::selection {
-  background: var(--color-ember);
-  color: var(--color-cream);
+  background: var(--color-ink);
+  color: #fff;
 }
 
 /* ===========================================================================
@@ -190,8 +190,8 @@ html {
 }
 
 .mkt ::selection {
-  background: var(--color-ember);
-  color: var(--color-cream);
+  background: var(--color-ink);
+  color: #fff;
 }
 
 /* Paper grain — one fixed overlay per page. */
