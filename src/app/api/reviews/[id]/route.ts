@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { json, notFound, parseBody, requireApiSession, serverError } from "@/lib/http";
 import { reviewUpdateSchema } from "@/lib/validation";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 /** Update a review's status (e.g. mark a low-rating item RESOLVED). */
 export async function PATCH(
@@ -24,6 +26,16 @@ export async function PATCH(
       where: { id: review.id },
       data: { status: parsed.data.status },
     });
+    after(() =>
+      recordAudit({
+        businessId,
+        actor: actorFromSession(auth.session),
+        action: "review.update",
+        summary: `Marked a ${review.rating}★ review ${parsed.data.status.toLowerCase()}`,
+        targetType: "review",
+        targetId: review.id,
+      })
+    );
     return json(updated);
   } catch (err) {
     console.error("review update failed", err);

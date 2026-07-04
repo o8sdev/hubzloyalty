@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { forbidden, json, parseBody, requireApiSession, serverError } from "@/lib/http";
 import { loyaltySettingsSchema } from "@/lib/validation";
 import { applyLoyaltyConfig } from "@/lib/loyalty";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 /**
  * Update the business's loyalty program configuration. Because tiers are
@@ -18,6 +20,16 @@ export async function PATCH(req: Request) {
 
   try {
     const loyalty = await applyLoyaltyConfig(businessId, parsed.data);
+    after(() =>
+      recordAudit({
+        businessId,
+        actor: actorFromSession(auth.session),
+        action: "settings.loyalty",
+        summary: `Updated loyalty rules (${parsed.data.pointsPerVisit} pts/visit · Silver ${parsed.data.silverThreshold} · Gold ${parsed.data.goldThreshold} · VIP ${parsed.data.vipThreshold})`,
+        targetType: "business",
+        targetId: businessId,
+      })
+    );
     return json({ ok: true, loyalty });
   } catch (err) {
     console.error("loyalty settings update failed", err);

@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { badRequest, json, parseBody, requireApiSession, serverError } from "@/lib/http";
 import {
@@ -7,6 +7,7 @@ import {
   customerListQuerySchema,
 } from "@/lib/validation";
 import { buildCustomerWhere, customerOrderBy } from "@/lib/customers";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   const auth = await requireApiSession();
@@ -73,6 +74,16 @@ export async function POST(req: Request) {
         source: "MANUAL",
       },
     });
+    after(() =>
+      recordAudit({
+        businessId,
+        actor: actorFromSession(auth.session),
+        action: "customer.create",
+        summary: `Added guest ${[customer.firstName, customer.lastName].filter(Boolean).join(" ")}`,
+        targetType: "customer",
+        targetId: customer.id,
+      })
+    );
     return json(customer, { status: 201 });
   } catch (err) {
     console.error("customer create failed", err);

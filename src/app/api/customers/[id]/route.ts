@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
-import { json, notFound, parseBody, requireApiSession, serverError } from "@/lib/http";
+import { forbidden, json, notFound, parseBody, requireApiSession, serverError } from "@/lib/http";
 import { arrayToTags, customerUpdateSchema } from "@/lib/validation";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -51,6 +53,16 @@ export async function PATCH(req: Request, { params }: RouteContext) {
         ...(tags !== undefined ? { tags: arrayToTags(tags) } : {}),
       },
     });
+    after(() =>
+      recordAudit({
+        businessId: auth.session.businessId,
+        actor: actorFromSession(auth.session),
+        action: "customer.update",
+        summary: `Edited guest ${[customer.firstName, customer.lastName].filter(Boolean).join(" ")}`,
+        targetType: "customer",
+        targetId: customer.id,
+      })
+    );
     return json(customer);
   } catch (err) {
     console.error("customer update failed", err);
@@ -61,12 +73,15 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 export async function DELETE(_req: Request, { params }: RouteContext) {
   const auth = await requireApiSession();
   if (auth.error) return auth.error;
+  // Deleting a guest is a permanent, GDPR-style erasure — owner-only.
+  // Staff (and managers) can add and edit guests but never delete them.
+  if (auth.session.role !== "OWNER") return forbidden();
   const { id } = await params;
 
   try {
     const existing = await db.customer.findFirst({
       where: { id, businessId: auth.session.businessId },
-      select: { id: true },
+      select: { id: true, firstName: true, lastName: true },
     });
     if (!existing) return notFound("Customer not found");
 
@@ -79,6 +94,16 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
       }),
       db.customer.delete({ where: { id } }),
     ]);
+    after(() =>
+      recordAudit({
+        businessId: auth.session.businessId,
+        actor: actorFromSession(auth.session),
+        action: "customer.delete",
+        summary: `Deleted guest ${[existing.firstName, existing.lastName].filter(Boolean).join(" ")}`,
+        targetType: "customer",
+        targetId: id,
+      })
+    );
     return json({ ok: true });
   } catch (err) {
     console.error("customer delete failed", err);

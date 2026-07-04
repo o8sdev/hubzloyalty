@@ -1,8 +1,10 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { parseBody, json, serverError } from "@/lib/http";
 import { loginSchema } from "@/lib/validation";
 import { supabaseServer, syncAuthClaims } from "@/lib/supabase";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
+import { recordAudit } from "@/lib/audit";
 import { NextResponse } from "next/server";
 
 const invalidCredentials = () =>
@@ -56,6 +58,20 @@ export async function POST(req: Request) {
     } catch (syncErr) {
       console.error("claim sync on login failed", syncErr);
     }
+
+    after(() =>
+      recordAudit({
+        businessId: user.businessId,
+        actor: {
+          userId: user.id,
+          email: user.email,
+          role: user.isPlatformAdmin ? "PLATFORM_ADMIN" : user.role,
+        },
+        action: "auth.login",
+        summary: "Signed in",
+        ip: clientIp(req),
+      })
+    );
 
     return json({
       ok: true,

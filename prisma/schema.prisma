@@ -54,6 +54,10 @@ model Business {
   maxEarnPerDay     Int     @default(2)
   askTableNumber    Boolean @default(false) // waiter venues: capture table #
 
+  // Max STAFF members (owner excluded) the owner can invite. Defaults to 1;
+  // only a platform admin can raise it per business.
+  staffLimit Int @default(1)
+
   // Set by a platform admin to suspend the business: blocks member logins
   // and returns 404 on the public funnel. Null = active.
   suspendedAt DateTime?
@@ -69,6 +73,31 @@ model Business {
   campaigns    Campaign[]
   rewardClaims RewardClaim[]
   checkins     Checkin[]
+  auditLogs    AuditLog[]
+}
+
+// Append-only trail of meaningful actions across the platform. Owners see
+// their own team's actions (Activity page); platform admins see everything
+// (filterable). actorEmail/actorRole are denormalized so a row survives the
+// user being deleted and stays filterable without a join.
+model AuditLog {
+  id          String    @id @default(cuid())
+  businessId  String? // null for platform-level actions not tied to a business
+  business    Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  actorUserId String? // domain User.id; null if the actor is gone/system
+  actorEmail  String // who acted (denormalized)
+  actorRole   String // OWNER | ADMIN | STAFF | PLATFORM_ADMIN
+  action      String // dotted key, e.g. "checkin.confirm", "settings.loyalty"
+  summary     String // human-readable one-liner shown in the UI
+  targetType  String? // optional: customer | checkin | review | business | user
+  targetId    String?
+  ip          String?
+  createdAt   DateTime  @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([actorEmail, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
 }
 
 // Domain profile for an authenticated person. Identity (credentials, email

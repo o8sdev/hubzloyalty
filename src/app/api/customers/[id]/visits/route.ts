@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { json, notFound, parseBody, requireApiSession, serverError } from "@/lib/http";
 import { tierForVisits, visitCreateSchema } from "@/lib/validation";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 export async function POST(
   req: Request,
@@ -62,6 +64,16 @@ export async function POST(
       });
     });
 
+    after(() =>
+      recordAudit({
+        businessId,
+        actor: actorFromSession(auth.session),
+        action: "visit.create",
+        summary: `Logged a manual visit for ${[result.firstName, result.lastName].filter(Boolean).join(" ")}`,
+        targetType: "customer",
+        targetId: customer.id,
+      })
+    );
     return json(result);
   } catch (err) {
     console.error("visit create failed", err);

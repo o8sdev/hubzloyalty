@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import {
   badRequest,
@@ -10,6 +11,7 @@ import {
 import { adminBusinessUpdateSchema } from "@/lib/validation";
 import { applyLoyaltyConfig } from "@/lib/loyalty";
 import { supabaseAdmin } from "@/lib/supabase";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 /**
  * ADMIN endpoints for a single business: edit any field (including slug,
@@ -30,7 +32,7 @@ export async function PATCH(
   try {
     const existing = await db.business.findUnique({
       where: { id },
-      select: { id: true, suspendedAt: true },
+      select: { id: true, name: true, suspendedAt: true },
     });
     if (!existing) return notFound("Business not found");
 
@@ -58,6 +60,24 @@ export async function PATCH(
 
     if (loyalty) await applyLoyaltyConfig(id, loyalty);
 
+    let summary: string;
+    if (suspended === true) summary = `Suspended ${existing.name}`;
+    else if (suspended === false) summary = `Reinstated ${existing.name}`;
+    else if (parsed.data.staffLimit !== undefined)
+      summary = `Set ${existing.name}'s staff limit to ${parsed.data.staffLimit}`;
+    else if (loyalty) summary = `Updated ${existing.name}'s loyalty rules`;
+    else summary = `Edited ${existing.name}'s profile`;
+    after(() =>
+      recordAudit({
+        businessId: id,
+        actor: actorFromSession(auth.session),
+        action: "admin.business.update",
+        summary,
+        targetType: "business",
+        targetId: id,
+      })
+    );
+
     return json({ ok: true, businessId: business.id });
   } catch (err) {
     console.error("admin business update failed", err);
@@ -78,6 +98,7 @@ export async function DELETE(
       where: { id },
       select: {
         id: true,
+        name: true,
         users: { select: { id: true, authId: true, isPlatformAdmin: true } },
       },
     });
@@ -110,6 +131,19 @@ export async function DELETE(
           .catch((e) => console.error("auth user delete failed", e));
       }
     }
+
+    // businessId null: the business (and its cascaded audit rows) is gone —
+    // this platform-level record must survive.
+    after(() =>
+      recordAudit({
+        businessId: null,
+        actor: actorFromSession(auth.session),
+        action: "admin.business.delete",
+        summary: `Deleted business ${existing.name}`,
+        targetType: "business",
+        targetId: id,
+      })
+    );
 
     return json({ ok: true });
   } catch (err) {

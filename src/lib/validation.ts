@@ -310,6 +310,8 @@ export const adminBusinessUpdateSchema = businessUpdateFields
   .extend({
     slug: slugField.optional(),
     suspended: z.boolean().optional(),
+    // Max STAFF members the owner may invite (platform-admin controlled).
+    staffLimit: z.number().int().min(0).max(1000).optional(),
     // Loyalty changes go through applyLoyaltyConfig (bulk tier recompute).
     loyalty: loyaltySettingsSchema.optional(),
   })
@@ -342,6 +344,30 @@ export const adminUserUpdateSchema = z.object({
 
 export const testEmailSchema = z.object({
   to: z.string().trim().toLowerCase().email(),
+});
+
+// ---------------------------------------------------------------------------
+// Audit log queries
+// ---------------------------------------------------------------------------
+
+/** Owner Activity page: their own business's actions, filter by member+date. */
+export const activityQuerySchema = z.object({
+  actorUserId: z.string().trim().min(1).optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(30),
+});
+
+/** Admin Activity page: all businesses, richer filters. */
+export const adminActivityQuerySchema = z.object({
+  q: z.string().trim().max(200).optional(), // matches actorEmail / summary
+  businessId: z.string().trim().min(1).optional(),
+  action: z.string().trim().max(60).optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(50),
 });
 
 // ---------------------------------------------------------------------------

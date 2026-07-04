@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "cross-env NODE_OPTIONS=--max-http-header-size=65536 next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "db:migrate": "prisma migrate dev",
@@ -27,6 +27,7 @@
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "cross-env": "^10.1.0",
     "postcss": "^8.5.1",
     "prisma": "^6.2.1",
     "sharp": "^0.35.3",

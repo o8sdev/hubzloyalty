@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import {
   badRequest,
@@ -10,6 +11,7 @@ import {
 import { teamInviteSchema } from "@/lib/validation";
 import { generateOneTimePassword } from "@/lib/onetime";
 import { buildClaims, supabaseAdmin } from "@/lib/supabase";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 /**
  * Owner/admin invites a STAFF member for their own business. Same one-time
@@ -30,6 +32,22 @@ export async function POST(req: Request) {
   try {
     const existing = await db.user.findUnique({ where: { email } });
     if (existing) return badRequest("A user with this email already exists");
+
+    // Per-business staff cap (owner excluded). Only a platform admin can
+    // raise the limit; owners get a clear "contact support" message.
+    const [business, staffCount] = await Promise.all([
+      db.business.findUnique({
+        where: { id: businessId },
+        select: { staffLimit: true },
+      }),
+      db.user.count({ where: { businessId, role: "STAFF" } }),
+    ]);
+    if (!business) return badRequest("Business not found");
+    if (staffCount >= business.staffLimit) {
+      return badRequest(
+        `You've reached your staff limit (${business.staffLimit}). Contact support to add more.`
+      );
+    }
 
     const oneTimePassword = generateOneTimePassword();
 
@@ -73,6 +91,17 @@ export async function POST(req: Request) {
         app_metadata: buildClaims(user),
       });
     if (claimsError) console.error("staff claim sync failed", claimsError);
+
+    after(() =>
+      recordAudit({
+        businessId,
+        actor: actorFromSession(auth.session),
+        action: "team.invite",
+        summary: `Invited staff member ${name} (${email})`,
+        targetType: "user",
+        targetId: user.id,
+      })
+    );
 
     return json({ ok: true, userId: user.id, email, oneTimePassword }, { status: 201 });
   } catch (err) {

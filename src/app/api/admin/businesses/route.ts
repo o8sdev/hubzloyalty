@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import {
   badRequest,
@@ -9,6 +10,7 @@ import {
 import { adminBusinessCreateSchema, slugify } from "@/lib/validation";
 import { generateOneTimePassword } from "@/lib/onetime";
 import { buildClaims, supabaseAdmin } from "@/lib/supabase";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 
 /** Thrown inside the provisioning transaction to surface a 400 (and roll back). */
 class ProvisionError extends Error {}
@@ -137,6 +139,17 @@ export async function POST(req: Request) {
     if (claimsError) {
       console.error("owner claim sync failed", claimsError);
     }
+
+    after(() =>
+      recordAudit({
+        businessId: business.id,
+        actor: actorFromSession(auth.session),
+        action: "admin.business.create",
+        summary: `Created business ${name} with owner ${owner.email}`,
+        targetType: "business",
+        targetId: business.id,
+      })
+    );
 
     return json(
       {

@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import {
   badRequest,
@@ -8,6 +9,16 @@ import {
 } from "@/lib/http";
 import { normalizeRewardCode } from "@/lib/onetime";
 import { creditVisit } from "@/lib/checkins";
+import { actorFromSession, recordAudit } from "@/lib/audit";
+
+/** Best-effort "First Last" for a customer, for the audit summary. */
+async function customerName(customerId: string): Promise<string> {
+  const c = await db.customer.findUnique({
+    where: { id: customerId },
+    select: { firstName: true, lastName: true },
+  });
+  return c ? [c.firstName, c.lastName].filter(Boolean).join(" ") : "a guest";
+}
 
 /**
  * Unified counter confirmation. One human tap does the right thing for
@@ -28,6 +39,7 @@ export async function POST(
   const auth = await requireApiSession();
   if (auth.error) return auth.error;
   const { businessId, userId } = auth.session;
+  const actor = actorFromSession(auth.session);
 
   const { code } = await params;
   const normalized = normalizeRewardCode(code);
@@ -105,6 +117,17 @@ export async function POST(
         { maxWait: 10_000, timeout: 30_000 }
       );
 
+      after(async () => {
+        const name = await customerName(claim.customerId);
+        await recordAudit({
+          businessId,
+          actor,
+          action: "gift.redeem",
+          summary: `Handed over welcome gift for ${name}${visitCredited ? " · visit + points credited" : ""}`,
+          targetType: "customer",
+          targetId: claim.customerId,
+        });
+      });
       return json({ ok: true, kind: "GIFT", visitCredited });
     }
 
@@ -137,6 +160,17 @@ export async function POST(
       { maxWait: 10_000, timeout: 30_000 }
     );
 
+    after(async () => {
+      const name = await customerName(checkin.customerId);
+      await recordAudit({
+        businessId,
+        actor,
+        action: "checkin.confirm",
+        summary: `Confirmed check-in for ${name} · visit + points credited`,
+        targetType: "customer",
+        targetId: checkin.customerId,
+      });
+    });
     return json({ ok: true, kind: "CHECKIN", visitCredited: true });
   } catch (err) {
     if (err instanceof AlreadyHandled) return badRequest(err.message);

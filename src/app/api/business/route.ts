@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import {
   forbidden,
@@ -8,6 +9,7 @@ import {
   serverError,
 } from "@/lib/http";
 import { businessUpdateSchema } from "@/lib/validation";
+import { actorFromSession, recordAudit } from "@/lib/audit";
 import type { Business } from "@prisma/client";
 
 type SocialLinks = { instagram?: string; facebook?: string; tiktok?: string };
@@ -83,6 +85,27 @@ export async function PATCH(req: Request) {
           : {}),
       },
     });
+
+    // Name the setting group(s) that changed for a readable audit line.
+    const keys = Object.keys(parsed.data);
+    const groups = new Set<string>();
+    for (const k of keys) {
+      if (/^notify/.test(k)) groups.add("notifications");
+      else if (/^welcomeReward/.test(k)) groups.add("welcome reward");
+      else if (/^(earnCooldownHours|maxEarnPerDay|askTableNumber)$/.test(k))
+        groups.add("check-in rules");
+      else groups.add("business profile");
+    }
+    after(() =>
+      recordAudit({
+        businessId: auth.session.businessId,
+        actor: actorFromSession(auth.session),
+        action: "settings.business",
+        summary: `Updated ${[...groups].join(", ")}`,
+        targetType: "business",
+        targetId: auth.session.businessId,
+      })
+    );
 
     return json({ business: serializeBusiness(business) });
   } catch (err) {

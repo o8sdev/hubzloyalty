@@ -54,6 +54,7 @@ export const config = {
     "/customers/:path*",
     "/counter",
     "/reviews/:path*",
+    "/activity",
     "/settings/:path*",
     "/loyalty/:path*",
     "/campaigns/:path*",
