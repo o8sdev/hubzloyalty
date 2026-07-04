@@ -38,6 +38,19 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-04 — Session 18 (Mac): Phase G4 — in-app reviews (guest app feature-complete)
+- **Guest reviews** (verified live: post → shows in the venue's rating).
+  `POST /api/guest/reviews { slug, rating, comment }` (guest-only): requires a
+  membership (must have checked in), one editable APP review per guest per
+  business, status NEW when rating<=3 so it enters the owner inbox. COMPLIANCE:
+  never gated by rating, never awards points. Venue page shows a star-picker
+  `ReviewForm` for members (else "check in to review"); reviews render publicly
+  and drive the venue's average (channel=APP).
+- **Guest app is now FEATURE-COMPLETE (G1–G4):** accounts, Discover + venue
+  pages + owner photos, check-in (scan or tap) → points + wallet, and reviews.
+  Next is the store path: deploy → Capacitor wrap (iOS+Android, native camera +
+  push) → your Apple ($99/yr) + Google ($25) accounts to submit.
+
 ### 2026-07-04 — Session 17 (Mac): Phase G3 — in-app check-in + wallet
 - **The core loop works** (verified live: guest → membership → PENDING check-in
   in the counter queue). `POST /api/guest/checkin { slug }` (guest-only):

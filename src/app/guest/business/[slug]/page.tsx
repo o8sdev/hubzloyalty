@@ -3,10 +3,11 @@ import Link from "next/link";
 import { StarRating } from "@/components/ui";
 import { avatarTone } from "@/lib/avatar";
 import { cn, formatDate } from "@/lib/utils";
-import { venueBySlug } from "@/lib/venues";
+import { venueBySlug, guestVenueContext } from "@/lib/venues";
 import { getGuestSession } from "@/lib/session";
 import { PhotoGallery } from "./gallery";
 import { CheckInButton } from "./check-in-button";
+import { ReviewForm } from "./review-form";
 
 export default async function GuestVenuePage({
   params,
@@ -17,6 +18,7 @@ export default async function GuestVenuePage({
   const v = await venueBySlug(slug);
   if (!v) notFound();
   const guest = await getGuestSession();
+  const ctx = guest ? await guestVenueContext(v.id, guest.guestId) : null;
 
   const initial = v.name.charAt(0).toUpperCase();
   const meta = [v.category, v.city].filter(Boolean).join(" · ");
@@ -125,6 +127,24 @@ export default async function GuestVenuePage({
           Reviews{" "}
           <span className="font-normal text-ink-faint">({v.reviewCount})</span>
         </h2>
+
+        {ctx?.hasMembership ? (
+          <div className="mb-3">
+            <ReviewForm
+              slug={v.slug}
+              initial={
+                ctx.review
+                  ? { rating: ctx.review.rating, comment: ctx.review.comment ?? "" }
+                  : null
+              }
+            />
+          </div>
+        ) : guest ? (
+          <p className="mb-3 rounded-xl border border-dashed border-ink/15 bg-white p-3 text-center text-xs text-ink-faint">
+            Check in here to leave a review.
+          </p>
+        ) : null}
+
         {v.reviews.length === 0 ? (
           <p className="rounded-2xl border border-ink/10 bg-white p-4 text-center text-sm text-ink-faint">
             No reviews yet — be the first after your visit.

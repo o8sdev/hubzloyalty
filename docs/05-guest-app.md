@@ -116,8 +116,10 @@ it rather than duplicate.
   "Check in here" button on the venue page; `POST /api/guest/checkin` (upsert
   membership + mint check-in via the shared cooldown/cap engine) → staff confirm
   → points. Wallet (`/guest/wallet`) shows memberships + live pending codes.
-- **G4 — Reviews & rewards.** In-app first-party reviews in Discover; rewards
-  wallet.
+- **G4 — Reviews. ✅ DONE.** In-app first-party reviews (`POST /api/guest/reviews`,
+  membership-gated, one editable review per guest per business, never gated by
+  rating / never points) shown publicly and driving the venue's average.
+  (Rewards catalog beyond the welcome gift is future.)
 - **G5 — Native store apps.** Capacitor wrap (needs a live deploy first) + native
   camera + push.
 

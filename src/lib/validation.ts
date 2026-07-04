@@ -173,6 +173,19 @@ export const guestRegisterSchema = z.object({
   website: z.string().optional(),
 });
 
+/** Guest first-party review (channel APP). COMPLIANCE: never gated by rating,
+ *  never awards points. */
+export const guestReviewSchema = z.object({
+  slug: z.string().trim().min(1).max(80),
+  rating: z.number().int().min(1).max(5),
+  comment: z
+    .string()
+    .trim()
+    .max(600)
+    .optional()
+    .or(z.literal("").transform(() => null)),
+});
+
 export const businessUpdateSchema = businessUpdateFields.refine(
   (v) =>
     v.welcomeRewardEnabled !== true ||

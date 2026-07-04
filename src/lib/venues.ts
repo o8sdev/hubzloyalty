@@ -132,3 +132,20 @@ export async function guestMemberships(guestId: string) {
     pendingCode: c.checkins[0] ? formatRewardCode(c.checkins[0].code) : null,
   }));
 }
+
+/** For the venue page: whether this guest can review here (has a membership /
+ *  has checked in) and their existing first-party review, if any. */
+export async function guestVenueContext(businessId: string, guestId: string) {
+  const [customer, review] = await Promise.all([
+    db.customer.findFirst({
+      where: { businessId, guestId },
+      select: { id: true },
+    }),
+    db.review.findFirst({
+      where: { businessId, guestId, channel: "APP" },
+      orderBy: { createdAt: "desc" },
+      select: { rating: true, comment: true },
+    }),
+  ]);
+  return { hasMembership: !!customer, review };
+}
