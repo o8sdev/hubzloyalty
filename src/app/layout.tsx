@@ -12,12 +12,12 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "LoyaltyCRM — Customer growth for cafés & restaurants",
+  title: "HUBz Loyalty — guest growth for cafés & restaurants",
   description:
     "Collect more Google reviews, intercept complaints before they go public, and build a customer database that brings guests back.",
   appleWebApp: {
     capable: true,
-    title: "LoyaltyCRM",
+    title: "HUBz Loyalty",
     statusBarStyle: "default",
   },
   icons: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#d4551e",
+  themeColor: "#161619",
   viewportFit: "cover" as const,
   width: "device-width",
   initialScale: 1,

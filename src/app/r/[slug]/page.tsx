@@ -57,7 +57,7 @@ export default async function PublicReviewPage({
       </div>
 
       <footer className="mt-10 text-xs text-slate-400">
-        Powered by LoyaltyCRM
+        Powered by HUBz Loyalty
       </footer>
     </main>
   );

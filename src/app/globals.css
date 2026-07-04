@@ -1,35 +1,37 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand = the marketing site's burnt ember, so the tool and the site are
-     one product. brand-700 is the primary action color (matches .mkt ember). */
-  --color-brand-50: #fdf4ed;
-  --color-brand-100: #fbe6d7;
-  --color-brand-200: #f6c9ab;
-  --color-brand-300: #efa478;
-  --color-brand-400: #e57b47;
-  --color-brand-500: #dd6630;
-  --color-brand-600: #d4551e;
-  --color-brand-700: #d4551e;
-  --color-brand-800: #b23f10;
-  --color-brand-900: #8f300b;
+  /* HUBz brand — monochrome ink. The whole product (app, admin, marketing) is
+     one black-and-white identity; brand-700 is the primary action color,
+     a near-black that matches the HUBz wordmark. */
+  --color-brand-50: #f4f4f5;
+  --color-brand-100: #e5e5e7;
+  --color-brand-200: #cacacf;
+  --color-brand-300: #9b9ba3;
+  --color-brand-400: #5d5d66;
+  --color-brand-500: #333338;
+  --color-brand-600: #1d1d21;
+  --color-brand-700: #161619;
+  --color-brand-800: #0c0c0e;
+  --color-brand-900: #050506;
   --color-accent-400: #fbbf24;
   --color-accent-500: #f59e0b;
   --color-accent-600: #d97706;
 
-  /* Marketing palette — "café print": paper, espresso ink, burnt ember,
-     awning moss, star gold. Used only on .mkt surfaces. */
-  --color-paper: #f6f0e4;
-  --color-paper-deep: #ece2cc;
-  --color-ink: #211711;
-  --color-ink-soft: #57453a;
-  --color-ink-faint: #8a7462;
-  --color-ember: #d4551e;
-  --color-ember-deep: #b23f10;
-  --color-moss: #234b38;
-  --color-moss-dark: #173627;
-  --color-gold: #e8a83a;
-  --color-cream: #fbf7ee;
+  /* HUBz surface palette (keeps the old key names so existing utilities
+     recolor automatically): clean light neutral, near-black ink, one warm
+     gold reserved for star ratings. */
+  --color-paper: #f5f5f6;
+  --color-paper-deep: #e8e8ea;
+  --color-ink: #121214;
+  --color-ink-soft: #46464d;
+  --color-ink-faint: #8a8a92;
+  --color-ember: #161619;
+  --color-ember-deep: #000000;
+  --color-moss: #1f1f24;
+  --color-moss-dark: #0d0d10;
+  --color-gold: #d8a72c;
+  --color-cream: #ffffff;
 
   /* One typeface across the whole product. --font-app is Space Grotesk, set by
      next/font in layout.tsx; mapping every Tailwind font role to it means

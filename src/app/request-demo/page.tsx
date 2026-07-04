@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/marketing/site-footer";
 import { DemoRequestForm } from "./demo-request-form";
 
 export const metadata: Metadata = {
-  title: "Request a demo — LoyaltyCRM",
+  title: "Request a demo — HUBz Loyalty",
   description:
     "We onboard every café personally. Request a demo, we'll reach out, set you up, and hand you your login.",
 };

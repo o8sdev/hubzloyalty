@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/marketing/site-footer";
 import { Parallax, Reveal } from "@/components/marketing/motion";
 
 export const metadata: Metadata = {
-  title: "About — LoyaltyCRM",
+  title: "About — HUBz Loyalty",
   description:
     "Why we built an ungated review funnel and a CRM that belongs to the café, not the platform.",
 };
@@ -79,7 +79,7 @@ export default function AboutPage() {
 
           <div className="mx-auto max-w-4xl px-5 pb-20 pt-36 text-center sm:px-8 lg:pb-28 lg:pt-44">
             <p className="mkt-eyebrow mkt-fade-up text-ember" style={{ "--d": "80ms" } as React.CSSProperties}>
-              about loyaltycrm
+              about hubz loyalty
             </p>
             <h1 className="f-display mkt-fade-up mt-5 text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl" style={{ "--d": "200ms" } as React.CSSProperties}>
               Hospitality&apos;s oldest habit,
@@ -137,7 +137,7 @@ export default function AboutPage() {
                   refill and a “this one&apos;s on us.” He just never got the chance.
                 </p>
                 <p>
-                  LoyaltyCRM is that chance, systematized. A QR at the table
+                  HUBz Loyalty is that chance, systematized. A QR at the table
                   that gives every guest a direct line to the owner <em>and</em> a
                   public option — both, always, in that order of speed. The
                   complaint arrives while the guest is still parking. The

@@ -1,6 +1,7 @@
 # CATCHUP — read this first on a new device
 
-**What this is:** LoyaltyCRM (repo: hubzloyalty) — a SaaS for cafés/restaurants.
+**What this is:** HUBz Loyalty (repo: hubzloyalty) — a SaaS for cafés/restaurants,
+part of the HUBz ecosystem (alongside HUBz Studio). Monochrome black/white brand.
 A QR code on the counter sends guests to a mobile page where they rate their
 visit; everyone gets both a Google-review link and a private "message the
 owner" option (deliberately **ungated** — rating-based routing violates
@@ -35,6 +36,27 @@ owners set their own password at first login.
 ---
 
 ## Session log (newest first)
+
+### 2026-07-03 — Session 12 (Windows): HUBz rebrand (name, logo, monochrome palette)
+- **Rebranded the whole product to "HUBz Loyalty"** (part of the HUBz ecosystem
+  with HUBz Studio). User provided the HUBz logo pack (black wordmark, stark
+  black-&-white brand — "Captured. Crafted. Remembered.").
+- **Name**: every "LoyaltyCRM" → "HUBz Loyalty" (app shells, admin, marketing
+  nav/footer, auth pages, emails, metadata, manifest, "Powered by", copy).
+- **Logo**: new `src/components/brand.tsx` `HubzWordmark` (variant light/dark →
+  black/white raster from `public/brand/`). Swapped into the owner-app sidebar
+  + mobile header, admin sidebar + mobile, marketing nav + footer, and the
+  auth-page header (replacing the old round "L"/"A" letter badges).
+- **Palette**: recolored to **monochrome** in `globals.css @theme` — `brand-*`
+  ramp → near-black; café-print vars (ember/moss/paper/ink/cream) → greyscale.
+  Kept `--color-gold` for star ratings and the semantic tier/status colors for
+  CRM legibility. This one edit recolored the whole app + marketing (everything
+  is var-driven). manifest theme/bg → black; viewport themeColor → #161619.
+- **Icons**: regenerated PWA icons (192/512/maskable-512/apple-touch-180) from
+  the HUBz white-on-black square via sharp; added `src/app/icon.png` (favicon).
+- Build passes (all routes). NOT browser-verified on this device (no `.env`).
+  Logo assets: `public/brand/`. To revert a serif/warm look isn't planned;
+  direction is HUBz mono. User chose wordmark "HUBz Loyalty", whole-product scope.
 
 ### 2026-07-03 — Session 11 (Windows): universal Space Grotesk font + live-DB reset
 - **Fixed the pulled build error** (`Can't resolve '@supabase/ssr'`): stale

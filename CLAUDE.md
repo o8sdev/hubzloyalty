@@ -52,6 +52,14 @@ Supabase Postgres + Supabase Auth (project ghubhzbvkfjhtywvtvuj, eu-west-1).
 - UI primitives come from `src/components/ui.tsx`; brand palette classes
   `bg-brand-700` etc. (defined in `src/app/globals.css` @theme). The /admin
   shell is dark (slate-900) on purpose — don't blend it with the tenant app.
+- **Product brand is HUBz Loyalty** (part of the HUBz ecosystem, alongside
+  HUBz Studio). Identity is **monochrome black & white** — `--color-brand-*`
+  and the café-print vars (`--color-ember/moss/paper/ink/cream`) are all
+  greyscale/near-black now; only `--color-gold` (star ratings) and the
+  semantic tier/status colors keep hue. The wordmark is `HubzWordmark` in
+  `src/components/brand.tsx` (variant light/dark); raster logo assets live in
+  `public/brand/`. Don't reintroduce the old ember/café colors or a text
+  wordmark.
 - **One typeface product-wide: Space Grotesk** (`--font-app`, set by next/font
   in `layout.tsx`; every font role — body, `.f-display`, `.f-mono`, and
   Tailwind `--font-sans`/`--font-mono`/`--font-serif` — maps to it in

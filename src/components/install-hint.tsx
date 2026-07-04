@@ -45,7 +45,7 @@ export function InstallHint() {
           onClick={() => void prompt.prompt()}
           className="text-sm font-semibold text-brand-700 hover:underline"
         >
-          ⬇ Install LoyaltyCRM on this phone
+          ⬇ Install HUBz Loyalty on this phone
         </button>
       ) : (
         <p className="text-xs text-ink-faint">

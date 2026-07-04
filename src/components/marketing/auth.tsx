@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HubzWordmark } from "@/components/brand";
 
 // ---------------------------------------------------------------------------
 // Shared café-print auth surface: the login / forgot / reset / set-password
@@ -87,11 +88,8 @@ export function AuthShell({
         </p>
 
         <header className="mkt-fade-up relative" style={{ "--d": "60ms" } as React.CSSProperties}>
-          <Link href="/" className="group inline-flex items-baseline gap-2">
-            <span className="flex h-8 w-8 items-center justify-center self-center rounded-full bg-ember text-sm font-black text-cream transition-transform duration-300 group-hover:rotate-[15deg]">
-              L
-            </span>
-            <span className="f-display text-xl font-semibold tracking-tight">LoyaltyCRM</span>
+          <Link href="/" className="inline-flex">
+            <HubzWordmark variant="light" imgClassName="h-7 w-auto" />
           </Link>
         </header>
 

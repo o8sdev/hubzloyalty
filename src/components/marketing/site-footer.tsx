@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HubzWordmark } from "@/components/brand";
 
 const COLUMNS = [
   {
@@ -34,10 +35,12 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-5 pb-10 pt-16 sm:px-8">
         <div className="flex flex-col justify-between gap-12 md:flex-row">
           <div className="max-w-sm">
-            <p className="f-display text-4xl font-semibold tracking-tight">
-              LoyaltyCRM
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-cream/60">
+            <HubzWordmark
+              variant="dark"
+              imgClassName="h-9 w-auto"
+              tagClassName="text-cream/50 text-[10px]"
+            />
+            <p className="mt-4 text-sm leading-relaxed text-cream/60">
               The QR on the counter that collects Google reviews, catches
               complaints before they go public, and builds the guest list your
               café never had.
@@ -73,7 +76,7 @@ export function SiteFooter() {
         <div className="mkt-rule mt-14 text-cream" />
 
         <div className="f-mono mt-6 flex flex-col items-start justify-between gap-3 text-[10px] uppercase tracking-[0.18em] text-cream/40 sm:flex-row sm:items-center">
-          <p>© 2026 LoyaltyCRM · brewed for hospitality</p>
+          <p>© 2026 HUBz Loyalty · brewed for hospitality</p>
           <p>table 12 is waiting ★</p>
         </div>
       </div>

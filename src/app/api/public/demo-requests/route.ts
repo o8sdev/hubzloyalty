@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       bodyHtml: detailLines.join(""),
       ctaLabel: "Open demo requests",
       ctaUrl: appUrl("/admin/demo-requests"),
-      footer: "You are receiving this because you are a LoyaltyCRM platform admin.",
+      footer: "You are receiving this because you are a HUBz Loyalty platform admin.",
     });
 
     const text = [

@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "LoyaltyCRM",
-    short_name: "LoyaltyCRM",
+    name: "HUBz Loyalty",
+    short_name: "HUBz Loyalty",
     description:
       "The guest book for cafés & restaurants — reviews, check-ins, loyalty.",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#f6f0e4",
-    theme_color: "#d4551e",
+    background_color: "#0c0c0e",
+    theme_color: "#161619",
     orientation: "portrait",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

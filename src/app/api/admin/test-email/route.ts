@@ -13,14 +13,14 @@ export async function POST(req: Request) {
   try {
     const result = await sendMail({
       to: parsed.data.to,
-      subject: "LoyaltyCRM test email",
+      subject: "HUBz Loyalty test email",
       kind: "TEST",
       html: renderEmail({
         heading: "Email delivery works",
         bodyHtml:
-          "<p>This is a test email sent from the LoyaltyCRM admin panel. If you can read this, outbound email is configured correctly.</p>",
+          "<p>This is a test email sent from the HUBz Loyalty admin panel. If you can read this, outbound email is configured correctly.</p>",
       }),
-      text: "This is a test email from the LoyaltyCRM admin panel.",
+      text: "This is a test email from the HUBz Loyalty admin panel.",
     });
     return json({ ok: result.ok, status: result.status });
   } catch (err) {

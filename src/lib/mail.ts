@@ -33,7 +33,7 @@ export async function sendMail(opts: {
   businessId?: string | null;
 }): Promise<{ ok: boolean; status: MailStatus }> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM ?? "LoyaltyCRM <onboarding@resend.dev>";
+  const from = process.env.MAIL_FROM ?? "HUBz Loyalty <onboarding@resend.dev>";
 
   let status: MailStatus;
   let error: string | null = null;
@@ -115,13 +115,13 @@ export function renderEmail(opts: {
 <html><body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
-      <tr><td style="padding:0 0 16px 4px;font-size:15px;font-weight:700;color:#0f4c81">LoyaltyCRM</td></tr>
+      <tr><td style="padding:0 0 16px 4px;font-size:15px;font-weight:700;color:#0f4c81">HUBz Loyalty</td></tr>
       <tr><td style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:32px">
         <h1 style="margin:0 0 16px;font-size:20px;color:#0f172a">${opts.heading}</h1>
         <div style="font-size:14px;line-height:1.6;color:#334155">${opts.bodyHtml}</div>
         ${cta}
       </td></tr>
-      <tr><td style="padding:16px 4px;font-size:12px;color:#94a3b8">${opts.footer ?? "You are receiving this because you have a LoyaltyCRM account."}</td></tr>
+      <tr><td style="padding:16px 4px;font-size:12px;color:#94a3b8">${opts.footer ?? "You are receiving this because you have a HUBz Loyalty account."}</td></tr>
     </table>
   </td></tr></table>
 </body></html>`;

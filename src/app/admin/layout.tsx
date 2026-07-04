@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requirePlatformAdmin } from "@/lib/session";
 import { AdminNav } from "@/components/admin-nav";
 import { LogoutButton } from "@/components/logout-button";
+import { HubzWordmark } from "@/components/brand";
 
 /**
  * Platform-admin shell. Deliberately dark so it's impossible to confuse
@@ -19,16 +20,10 @@ export default async function AdminLayout({
     <div className="flex min-h-screen bg-slate-100">
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-slate-900 px-4 py-6 md:flex">
-        <Link
-          href="/admin"
-          className="mb-1 flex items-center gap-2 px-2 text-base font-bold text-white"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-xs font-black text-slate-900">
-            A
-          </span>
-          LoyaltyCRM
+        <Link href="/admin" className="mb-1 flex px-2">
+          <HubzWordmark variant="dark" imgClassName="h-6 w-auto" />
         </Link>
-        <p className="mb-8 px-2 text-[10px] font-semibold uppercase tracking-wider text-amber-500">
+        <p className="mb-8 px-2 text-[10px] font-semibold uppercase tracking-wider text-white/45">
           Platform admin
         </p>
         <AdminNav />
@@ -45,14 +40,11 @@ export default async function AdminLayout({
       {/* Mobile top bar */}
       <div className="flex w-full flex-col">
         <header className="flex items-center justify-between bg-slate-900 px-4 py-3 md:hidden">
-          <Link
-            href="/admin"
-            className="flex items-center gap-2 text-sm font-bold text-white"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500 text-[10px] font-black text-slate-900">
-              A
+          <Link href="/admin" className="flex items-center gap-2">
+            <HubzWordmark variant="dark" imgClassName="h-5 w-auto" showTag={false} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+              Admin
             </span>
-            Admin
           </Link>
           <nav className="flex gap-3 text-xs font-medium text-slate-300">
             <Link href="/admin">Home</Link>

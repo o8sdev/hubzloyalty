@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HubzWordmark } from "@/components/brand";
 
 const TABS = [
   { href: "/#how", label: "How it works" },
@@ -37,13 +38,8 @@ export function SiteNav() {
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
         {/* Wordmark */}
-        <Link href="/" className="group flex items-baseline gap-2">
-          <span className="flex h-8 w-8 items-center justify-center self-center rounded-full bg-ember text-sm font-black text-cream transition-transform duration-300 group-hover:rotate-[15deg]">
-            L
-          </span>
-          <span className="f-display text-xl font-semibold tracking-tight">
-            LoyaltyCRM
-          </span>
+        <Link href="/" className="flex">
+          <HubzWordmark variant="light" imgClassName="h-7 w-auto" />
         </Link>
 
         {/* Desktop tabs */}

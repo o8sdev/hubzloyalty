@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { AppNav } from "@/components/app-nav";
 import { LogoutButton } from "@/components/logout-button";
+import { HubzWordmark } from "@/components/brand";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -24,15 +25,10 @@ export default async function AppLayout({
     <div className="flex min-h-screen bg-paper">
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-screen w-60 flex-col border-r border-ink/10 bg-cream px-4 py-6 md:flex">
-        <Link href="/dashboard" className="group mb-1 flex items-baseline gap-2 px-2">
-          <span className="flex h-7 w-7 items-center justify-center self-center rounded-full bg-brand-700 text-xs font-black text-white transition-transform duration-300 group-hover:rotate-[15deg]">
-            L
-          </span>
-          <span className="f-display text-lg font-semibold tracking-tight text-ink">
-            LoyaltyCRM
-          </span>
+        <Link href="/dashboard" className="mb-1 flex px-2">
+          <HubzWordmark variant="light" imgClassName="h-6 w-auto" />
         </Link>
-        <p className="mb-7 px-2 pl-11 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-faint">
+        <p className="mb-7 px-2 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-faint">
           guest book
         </p>
         <AppNav />
@@ -59,11 +55,8 @@ export default async function AppLayout({
       {/* Mobile top bar */}
       <div className="flex w-full flex-col">
         <header className="flex items-center justify-between border-b border-ink/10 bg-cream px-4 py-3 md:hidden">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[10px] font-black text-white">
-              L
-            </span>
-            <span className="f-display text-sm font-semibold text-ink">LoyaltyCRM</span>
+          <Link href="/dashboard" className="flex">
+            <HubzWordmark variant="light" imgClassName="h-5 w-auto" />
           </Link>
           <nav className="flex gap-3 text-xs font-medium text-ink-soft">
             <Link href="/dashboard">Home</Link>
