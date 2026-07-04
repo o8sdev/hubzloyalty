@@ -38,6 +38,23 @@ owners set their own password at first login.
 
 ## Session log (newest first)
 
+### 2026-07-04 — Session 17 (Mac): Phase G3 — in-app check-in + wallet
+- **The core loop works** (verified live: guest → membership → PENDING check-in
+  in the counter queue). `POST /api/guest/checkin { slug }` (guest-only):
+  resolves the business by slug, upserts the guest's Customer (find-or-create,
+  race-safe via the `@@unique([businessId,guestId])`), and mints a PENDING
+  check-in reusing the existing cooldown/cap engine (`checkEarnEligibility`) —
+  staff confirm at the counter (existing flow) to credit the visit + points.
+- **Two ways to check in:** a "Check in here" button on the venue page (works on
+  any device, no camera) and a **camera QR scanner** (`/guest/scan`, jsQR +
+  getUserMedia; the QR encodes /r/[slug]). Camera needs https on a phone; falls
+  back to a clear message + the venue button.
+- **Wallet** (`/guest/wallet`): the guest's memberships across businesses
+  (points/tier/visits) + any live pending code (`guestMemberships()` in
+  venues.ts). Shared result UI in `checkin-ticket.tsx`.
+- Dep added: `jsqr`. NEXT: G4 in-app reviews; then the Capacitor wrap for the
+  iOS/Android store apps.
+
 ### 2026-07-04 — Session 16 (Mac): Phase G1 — guest authentication
 - **Guest sign-in works** (verified against live Supabase: login returns
   role=GUEST + matching profileId). Controlled self-signup via the admin API

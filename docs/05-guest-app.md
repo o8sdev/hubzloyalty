@@ -112,8 +112,10 @@ it rather than duplicate.
   (Email verification deferred — accounts auto-confirm for now.)
 - **G2 — Discover.** Owner "list my business" profile editor (category, location,
   cover, opt-in); `/api/guest/discover`; Discover list + business detail.
-- **G3 — Scan → points.** In-app camera QR scanner; `POST /api/guest/checkin`
-  (find-or-create membership + mint check-in) → staff confirm → wallet.
+- **G3 — Scan → points. ✅ DONE.** In-app camera QR scanner (jsQR) + a
+  "Check in here" button on the venue page; `POST /api/guest/checkin` (upsert
+  membership + mint check-in via the shared cooldown/cap engine) → staff confirm
+  → points. Wallet (`/guest/wallet`) shows memberships + live pending codes.
 - **G4 — Reviews & rewards.** In-app first-party reviews in Discover; rewards
   wallet.
 - **G5 — Native store apps.** Capacitor wrap (needs a live deploy first) + native

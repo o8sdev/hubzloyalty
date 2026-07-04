@@ -4,7 +4,9 @@ import { StarRating } from "@/components/ui";
 import { avatarTone } from "@/lib/avatar";
 import { cn, formatDate } from "@/lib/utils";
 import { venueBySlug } from "@/lib/venues";
+import { getGuestSession } from "@/lib/session";
 import { PhotoGallery } from "./gallery";
+import { CheckInButton } from "./check-in-button";
 
 export default async function GuestVenuePage({
   params,
@@ -14,6 +16,7 @@ export default async function GuestVenuePage({
   const { slug } = await params;
   const v = await venueBySlug(slug);
   if (!v) notFound();
+  const guest = await getGuestSession();
 
   const initial = v.name.charAt(0).toUpperCase();
   const meta = [v.category, v.city].filter(Boolean).join(" · ");
@@ -72,19 +75,14 @@ export default async function GuestVenuePage({
         )}
       </div>
 
-      {/* Check-in prompt (per-guest loyalty arrives with G1 sign-in) */}
+      {/* Check in — tap here at the counter, or scan the QR from the Scan tab */}
       <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4 shadow-sm">
         <p className="text-sm font-semibold text-ink">Check in when you visit</p>
         <p className="mt-0.5 text-xs text-ink-faint">
-          Sign in and scan the QR at the counter to log your visit and earn
-          points here.
+          Tap below at the counter (or scan the QR) to log your visit — it earns
+          points once staff confirm it.
         </p>
-        <Link
-          href="/guest/scan"
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white active:scale-[0.99]"
-        >
-          <span aria-hidden>▣</span> Scan to check in
-        </Link>
+        <CheckInButton slug={v.slug} signedIn={!!guest} />
       </div>
 
       {/* Photos */}

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { formatRewardCode } from "@/lib/onetime";
 
 // ---------------------------------------------------------------------------
 // Public venue reads for the guest app. Only businesses that opted into the
@@ -99,4 +100,35 @@ export async function venueBySlug(slug: string) {
     reviewCount: agg._count,
     reviews,
   };
+}
+
+/** A guest's loyalty memberships across every business, plus any live pending
+ *  check-in code at each. */
+export async function guestMemberships(guestId: string) {
+  const now = new Date();
+  const customers = await db.customer.findMany({
+    where: { guestId },
+    orderBy: [{ lastVisitAt: { sort: "desc", nulls: "last" } }],
+    select: {
+      id: true,
+      tier: true,
+      loyaltyPoints: true,
+      totalVisits: true,
+      business: { select: { name: true, slug: true, category: true } },
+      checkins: {
+        where: { status: "PENDING", expiresAt: { gt: now } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { code: true },
+      },
+    },
+  });
+  return customers.map((c) => ({
+    id: c.id,
+    tier: c.tier,
+    points: c.loyaltyPoints,
+    visits: c.totalVisits,
+    business: c.business,
+    pendingCode: c.checkins[0] ? formatRewardCode(c.checkins[0].code) : null,
+  }));
 }
