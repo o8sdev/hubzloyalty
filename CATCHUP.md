@@ -34,6 +34,39 @@ the counter (step 2b) — and **automatic bonuses (birthday + tier-up) plus a
 points-expiry job**. Phase 3 (the loyalty program) is now feature-complete. Only
 Phase 2 item left is the first Vercel deploy. Phases: `docs/04-roadmap.md`.
 
+---
+
+## ► WHERE WE ARE RIGHT NOW (2026-07-05)
+
+**Phase 3 — the loyalty program — is feature-complete and pushed** (latest commit
+`f2bc164`). The full points loop works end to end:
+
+- **Earn:** staff-confirmed check-ins (QR funnel or in-app scan) + manual visits
+  credit points and climb tiers, every move written to the append-only
+  `PointsLedger` (source of truth; `Customer.loyaltyPoints` is a reconciled cache).
+- **Spend:** owner rewards catalog → staff redeem from a guest's profile, OR
+  guests self-redeem in the app (mint a code → staff confirm at `/counter`).
+  Overspend-proof via compare-and-set; every spend logged with a frozen cash value.
+- **Automatic:** welcome gift (first-timers), tier-up bonus (instant, on promotion),
+  birthday bonus + points expiry (daily cron `/api/cron/loyalty`).
+- **Owner view:** `/loyalty` report — outstanding liability, value given away,
+  points issued/redeemed/expired, live ledger feed + CSV export.
+
+**Immediate next step → the first Vercel deploy** (the last remaining Phase 2 item).
+It's what turns the crons on and closes Phase 2. When deploying:
+- Set env: `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` (admin provisioning),
+  `RESEND_API_KEY` + `MAIL_FROM` (real email), plus the DB/Supabase vars.
+- Pin functions to the DB region (dub1/lhr1) — see `CLAUDE.md`.
+- Two crons in `vercel.json` start firing: weekly digest (Mon 08:00 UTC) + daily
+  loyalty jobs (06:00 UTC).
+
+**Then:** Phase 4 (campaigns). **Still flagged (not yet done):** two pre-existing
+funnel concurrency races — partial unique indexes on `Customer(businessId,phone)`
+& `(businessId,email)` + graceful P2002 handling in the public reviews route
+(spawned task `task_0cd2af74`).
+
+---
+
 **Onboarding is INVITE-ONLY** (as of Session 5): no self-registration.
 Prospects submit `/request-demo`; the platform admin works the inbox at
 `/admin/demo-requests` and provisions businesses with a one-time password;
