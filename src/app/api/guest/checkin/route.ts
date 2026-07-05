@@ -11,7 +11,7 @@ import {
 import {
   CHECKIN_TTL_MS,
   checkEarnEligibility,
-  generateUniqueCheckinCode,
+  generateUniqueBearerCode,
 } from "@/lib/checkins";
 import { formatRewardCode } from "@/lib/onetime";
 
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       return json({ state: "capped", businessName: business.name });
     }
 
-    const code = await generateUniqueCheckinCode();
+    const code = await generateUniqueBearerCode();
     const checkin = await db.checkin.create({
       data: {
         businessId: business.id,

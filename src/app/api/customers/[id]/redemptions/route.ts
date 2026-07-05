@@ -80,7 +80,10 @@ export async function POST(
           rewardName: reward.name, // frozen
           pointsSpent: reward.pointsCost, // frozen
           valueCents: reward.costValueCents, // frozen
+          // Staff-instant: born settled (no bearer code), points move now.
+          status: "CONFIRMED",
           redeemedByUserId: userId,
+          redeemedAt: new Date(),
         },
       });
 

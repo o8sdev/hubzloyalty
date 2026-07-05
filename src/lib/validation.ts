@@ -255,6 +255,11 @@ export const redemptionCreateSchema = z.object({
   rewardId: z.string().trim().min(1).max(60),
 });
 
+/** Guest cancels their own PENDING self-redeem code (by the code they hold). */
+export const redeemCancelSchema = z.object({
+  code: z.string().trim().min(1).max(12),
+});
+
 export const customerListQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   tier: z.enum(TIERS).optional(),

@@ -3,10 +3,11 @@ import Link from "next/link";
 import { StarRating } from "@/components/ui";
 import { avatarTone } from "@/lib/avatar";
 import { cn, formatDate } from "@/lib/utils";
-import { venueBySlug, guestVenueContext } from "@/lib/venues";
+import { venueBySlug, guestVenueContext, guestRewardsContext } from "@/lib/venues";
 import { getGuestSession } from "@/lib/session";
 import { PhotoGallery } from "./gallery";
 import { CheckInButton } from "./check-in-button";
+import { RewardsPanel } from "./rewards-panel";
 import { ReviewForm } from "./review-form";
 
 export default async function GuestVenuePage({
@@ -18,7 +19,12 @@ export default async function GuestVenuePage({
   const v = await venueBySlug(slug);
   if (!v) notFound();
   const guest = await getGuestSession();
-  const ctx = guest ? await guestVenueContext(v.id, guest.guestId) : null;
+  const [ctx, rewards] = guest
+    ? await Promise.all([
+        guestVenueContext(v.id, guest.guestId),
+        guestRewardsContext(v.id, guest.guestId),
+      ])
+    : [null, null];
 
   const initial = v.name.charAt(0).toUpperCase();
   const meta = [v.category, v.city].filter(Boolean).join(" · ");
@@ -86,6 +92,17 @@ export default async function GuestVenuePage({
         </p>
         <CheckInButton slug={v.slug} signedIn={!!guest} />
       </div>
+
+      {/* Rewards — redeem points for a code staff confirm at the counter */}
+      {rewards && (rewards.rewards.length > 0 || rewards.pending) ? (
+        <section className="mt-4">
+          <RewardsPanel
+            points={rewards.points}
+            rewards={rewards.rewards}
+            initialPending={rewards.pending}
+          />
+        </section>
+      ) : null}
 
       {/* Photos */}
       {v.photos.length > 0 ? (

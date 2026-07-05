@@ -40,7 +40,11 @@ export default async function CustomerDetailPage({
         visits: { orderBy: { visitedAt: "desc" }, take: 10 },
         reviews: { orderBy: { createdAt: "desc" }, take: 10 },
         rewardClaims: { where: { kind: "WELCOME" }, take: 1 },
-        redemptions: { orderBy: { redeemedAt: "desc" }, take: 10 },
+        redemptions: {
+          where: { status: "CONFIRMED" },
+          orderBy: { redeemedAt: "desc" },
+          take: 10,
+        },
       },
     }),
     db.reward.findMany({

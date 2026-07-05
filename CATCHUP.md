@@ -28,9 +28,11 @@ eu-west-1). One typeface product-wide: **Space Grotesk** (`--font-app`).
 invite-only onboarding, staff-confirmed check-ins, welcome rewards, an
 installable PWA, the guest app (G1–G4), and **Phase 3 — the points economy**:
 the accounting-grade ledger (step 1), the rewards catalog + staff redemption
-(step 2a), and the owner loyalty report + ledger CSV export at `/loyalty`
-(step 3). Next loyalty chunk is guest self-redeem (step 2b). Only Phase 2 item
-left is the first Vercel deploy. Phases: `docs/04-roadmap.md`.
+(step 2a), the owner loyalty report + ledger CSV export at `/loyalty` (step 3),
+and guest self-redeem — guests mint a reward code in the app, staff confirm it
+at the counter (step 2b). Next loyalty chunk is automatic bonuses (birthday/
+tier) + a points-expiry job. Only Phase 2 item left is the first Vercel deploy.
+Phases: `docs/04-roadmap.md`.
 
 **Onboarding is INVITE-ONLY** (as of Session 5): no self-registration.
 Prospects submit `/request-demo`; the platform admin works the inbox at
@@ -40,6 +42,38 @@ owners set their own password at first login.
 ---
 
 ## Session log (newest first)
+
+### 2026-07-05 — Session 20 (Windows): guest SELF-redeem (Phase 3 step 2b)
+- **Guests can now spend points from the app.** A signed-in guest opens a venue,
+  picks an affordable reward, and mints a one-time **reward code** in their
+  wallet; staff confirm it at the counter (same box as check-in / gift codes) —
+  and THAT is when the points move. Closes the consumer half of the loop.
+- **Model decision — deduct at CONFIRM, not at mint** (symmetric with the
+  welcome-gift flow). Minting writes NO ledger row and moves NO points; it only
+  records a PENDING intent. The counter confirm runs the overspend-proof engine:
+  a compare-and-set decrement (`loyaltyPoints >= cost → decrement`, count!=1
+  throws) + one REDEEM ledger row (delta = −cost, frozen value) in the same tx.
+  So a guest can mint a code but can only ever CONFIRM up to their real balance —
+  no refund/reversal machinery needed for expiry, and reconciliation
+  (cache == SUM(delta)) holds because pending codes have no ledger row.
+- **Schema — extended `Redemption`** (not a new table): added `code` (unique,
+  null for staff-instant), `status` (PENDING|CONFIRMED|CANCELLED|EXPIRED, default
+  CONFIRMED), `expiresAt`, `createdAt`; `redeemedAt` now nullable. Partial unique
+  index → **one live PENDING code per customer**; unique `code`; expiry derived
+  at read time (mint sweeps the guest's own stale PENDING → EXPIRED first).
+  Migration `20260705000000_guest_self_redeem` applied live via MCP.
+- **Endpoints/UI:** `POST /api/guest/redeem` (mint) + `DELETE` (cancel own code);
+  counter dispatcher + confirm gained a 3rd REDEMPTION code type (💳, one-time-use
+  flip → decrement → ledger); `CounterConsole` renders/redeems it; new guest
+  `RewardsPanel` on the venue page (balance + affordable rewards + minted-code
+  card + cancel); wallet shows the 💳 pending-reward chip. Report
+  `redemption.count` + profile history scoped to `status=CONFIRMED`; staff-instant
+  redeem now sets `status/redeemedAt` explicitly.
+- Built with a mapping workflow (5 readers) + an adversarial review workflow
+  (4 lenses × 2 skeptics/finding) over the diff. Build passes.
+- **NEXT:** automatic bonuses (birthday/tier) + a points-expiry job (would
+  populate the EXPIRE ledger type + the `/loyalty` "Points expired" stat, still
+  0). Still-flagged: two pre-existing funnel concurrency races (`task_0cd2af74`).
 
 ### 2026-07-04 — Session 19c (Windows): owner loyalty report + ledger export (Phase 3 step 3)
 - **The accounting payoff of the ledger.** New owner page **`/loyalty`** (the

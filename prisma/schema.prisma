@@ -294,6 +294,16 @@ model Reward {
 // posted to PointsLedger (type REDEEM) in the same transaction. rewardName /
 // pointsSpent / valueCents are FROZEN at redemption so the record is immutable
 // even if the reward is later edited or deleted (rewardId → SetNull).
+//
+// Two lifecycles share this table:
+//   • STAFF-instant (born CONFIRMED, no code): staff redeem for a guest at the
+//     counter — points move immediately.
+//   • GUEST self-redeem (born PENDING, carries a bearer `code`): a guest mints
+//     a code from their wallet; points DO NOT move yet. Staff confirm the code
+//     at the counter, which flips it CONFIRMED and posts the REDEEM ledger row.
+// This mirrors the welcome-gift RewardClaim flow. Expiry of a PENDING code is
+// DERIVED at read time from expiresAt (no cron); at most one PENDING code per
+// customer (partial unique index in the migration).
 model Redemption {
   id               String   @id @default(cuid())
   businessId       String
@@ -305,11 +315,17 @@ model Redemption {
   rewardName       String // frozen
   pointsSpent      Int // frozen
   valueCents       Int      @default(0) // frozen cost value
-  redeemedByUserId String? // staff/owner who handed it over
-  redeemedAt       DateTime @default(now())
+  // Guest self-redeem bearer code (normalized, no dashes); null for staff-instant.
+  code             String?  @unique
+  status           String   @default("CONFIRMED") // PENDING | CONFIRMED | CANCELLED | EXPIRED
+  expiresAt        DateTime? // set on PENDING codes; expiry derived at read time
+  redeemedByUserId String? // staff/owner who handed it over (null until confirmed)
+  redeemedAt       DateTime? // when confirmed/handed over; null while PENDING
+  createdAt        DateTime  @default(now())
 
   @@index([businessId, redeemedAt])
   @@index([customerId])
+  @@index([businessId, status, createdAt])
 }
 
 model Campaign {

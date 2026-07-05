@@ -10,22 +10,25 @@ import { recordLedgerRow } from "@/lib/ledger";
 // and the pending queue.
 // ---------------------------------------------------------------------------
 
-export const CHECKIN_TTL_MS = 2 * 60 * 60 * 1000; // codes live 2 hours
+export const CHECKIN_TTL_MS = 2 * 60 * 60 * 1000; // check-in codes live 2 hours
+export const REDEMPTION_CODE_TTL_MS = 24 * 60 * 60 * 1000; // redemption codes live 24 hours
 
 /**
- * A code must be unique across BOTH bearer-code tables (welcome gifts and
- * check-ins) so the counter lookup is unambiguous.
+ * A bearer code must be unique across ALL THREE counter code tables — welcome
+ * gifts (RewardClaim), check-ins (Checkin) and guest self-redeem codes
+ * (Redemption) — so the unified counter lookup is unambiguous.
  */
-export async function generateUniqueCheckinCode(): Promise<string> {
+export async function generateUniqueBearerCode(): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateRewardCode();
-    const [claim, checkin] = await Promise.all([
+    const [claim, checkin, redemption] = await Promise.all([
       db.rewardClaim.findUnique({ where: { code }, select: { id: true } }),
       db.checkin.findUnique({ where: { code }, select: { id: true } }),
+      db.redemption.findUnique({ where: { code }, select: { id: true } }),
     ]);
-    if (!claim && !checkin) return code;
+    if (!claim && !checkin && !redemption) return code;
   }
-  throw new Error("could not generate a unique check-in code");
+  throw new Error("could not generate a unique bearer code");
 }
 
 export type LoyaltyNumbers = {

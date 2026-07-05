@@ -11,10 +11,12 @@ import { Button, Input } from "@/components/ui";
 // ---------------------------------------------------------------------------
 
 type Lookup = {
-  kind: "GIFT" | "CHECKIN";
+  kind: "GIFT" | "CHECKIN" | "REDEMPTION";
   code: string;
-  status: "PENDING" | "REDEEMED" | "CONFIRMED" | "EXPIRED";
+  status: "PENDING" | "REDEEMED" | "CONFIRMED" | "EXPIRED" | "CANCELLED";
   rewardText?: string;
+  rewardName?: string;
+  pointsSpent?: number;
   tableNumber?: string | null;
   expiresAt: string | null;
   redeemedAt?: string | null;
@@ -46,6 +48,7 @@ export function CounterConsole({
   const [confirmedInfo, setConfirmedInfo] = useState<{
     kind: string;
     visitCredited: boolean;
+    pointsSpent?: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,7 +105,11 @@ export function CounterConsole({
         setPhase("found");
         return;
       }
-      setConfirmedInfo({ kind: data.kind, visitCredited: data.visitCredited });
+      setConfirmedInfo({
+        kind: data.kind,
+        visitCredited: data.visitCredited,
+        pointsSpent: data.pointsSpent,
+      });
       setPhase("done");
       onConfirmed?.();
       router.refresh();
@@ -170,11 +177,13 @@ export function CounterConsole({
               <p className={`mt-1 font-semibold text-ink ${big ? "text-xl" : "text-base"}`}>
                 {result.kind === "GIFT"
                   ? `🎁 ${result.rewardText} — first visit`
-                  : `✓ Check-in${
-                      typeof result.customer?.totalVisits === "number"
-                        ? ` — visit #${result.customer.totalVisits + 1}`
-                        : ""
-                    }`}
+                  : result.kind === "REDEMPTION"
+                    ? `💳 ${result.rewardName} — ${result.pointsSpent} pts`
+                    : `✓ Check-in${
+                        typeof result.customer?.totalVisits === "number"
+                          ? ` — visit #${result.customer.totalVisits + 1}`
+                          : ""
+                      }`}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
@@ -186,7 +195,9 @@ export function CounterConsole({
                     ? "Confirming…"
                     : result.kind === "GIFT"
                       ? "Hand it over — confirm"
-                      : "Confirm check-in"}
+                      : result.kind === "REDEMPTION"
+                        ? "Redeem — confirm"
+                        : "Confirm check-in"}
                 </Button>
                 <Button
                   variant="secondary"
@@ -202,7 +213,7 @@ export function CounterConsole({
             <>
               <p className="text-sm font-medium text-ink">
                 {result?.status === "REDEEMED" || result?.status === "CONFIRMED"
-                  ? `Already ${result.kind === "GIFT" ? "redeemed" : "confirmed"} — ${guestName}.`
+                  ? `Already ${result.kind === "CHECKIN" ? "confirmed" : "redeemed"} — ${guestName}.`
                   : "This code has expired."}
               </p>
               <Button variant="secondary" className="mt-3" onClick={reset}>
@@ -216,9 +227,18 @@ export function CounterConsole({
       {phase === "done" ? (
         <div className="rounded-xl border border-moss/30 bg-moss/10 p-4">
           <p className={`font-semibold text-moss ${big ? "text-lg" : "text-sm"}`}>
-            ✓ {confirmedInfo?.kind === "GIFT" ? "Gift handed over" : "Checked in"} —{" "}
-            {guestName}
-            {confirmedInfo?.visitCredited ? " · visit + points credited" : ""}
+            ✓{" "}
+            {confirmedInfo?.kind === "GIFT"
+              ? "Gift handed over"
+              : confirmedInfo?.kind === "REDEMPTION"
+                ? "Reward redeemed"
+                : "Checked in"}{" "}
+            — {guestName}
+            {confirmedInfo?.kind === "REDEMPTION" && confirmedInfo.pointsSpent
+              ? ` · ${confirmedInfo.pointsSpent} pts debited`
+              : confirmedInfo?.visitCredited
+                ? " · visit + points credited"
+                : ""}
           </p>
           <Button variant="secondary" className="mt-3" onClick={reset}>
             Next guest

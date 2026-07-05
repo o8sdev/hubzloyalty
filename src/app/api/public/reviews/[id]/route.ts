@@ -7,7 +7,7 @@ import { generateRewardCode } from "@/lib/onetime";
 import {
   CHECKIN_TTL_MS,
   checkEarnEligibility,
-  generateUniqueCheckinCode,
+  generateUniqueBearerCode,
 } from "@/lib/checkins";
 
 /**
@@ -154,7 +154,7 @@ export async function PATCH(
       // Eligible to mint: pre-generate codes; retry once on the
       // (astronomically rare) unique collision.
       let rewardCode = generateRewardCode();
-      let checkinCode = await generateUniqueCheckinCode();
+      let checkinCode = await generateUniqueBearerCode();
 
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
@@ -259,7 +259,7 @@ export async function PATCH(
             JSON.stringify(txErr.meta ?? {}).includes("code");
           if (isCodeCollision && attempt === 0) {
             rewardCode = generateRewardCode();
-            checkinCode = await generateUniqueCheckinCode();
+            checkinCode = await generateUniqueBearerCode();
             welcomeReward = null;
             checkin = null;
             continue;

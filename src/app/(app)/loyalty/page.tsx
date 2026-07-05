@@ -57,7 +57,7 @@ export default async function LoyaltyPage() {
       _sum: { valueCents: true },
     }),
     db.customer.count({ where: { businessId, loyaltyPoints: { gt: 0 } } }),
-    db.redemption.count({ where: { businessId } }),
+    db.redemption.count({ where: { businessId, status: "CONFIRMED" } }),
     db.pointsLedger.findMany({
       where: { businessId },
       orderBy: { createdAt: "desc" },

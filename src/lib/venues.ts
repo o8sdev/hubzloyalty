@@ -103,7 +103,7 @@ export async function venueBySlug(slug: string) {
 }
 
 /** A guest's loyalty memberships across every business, plus any live pending
- *  check-in code at each. */
+ *  check-in code and pending self-redeem reward code at each. */
 export async function guestMemberships(guestId: string) {
   const now = new Date();
   const customers = await db.customer.findMany({
@@ -121,6 +121,12 @@ export async function guestMemberships(guestId: string) {
         take: 1,
         select: { code: true },
       },
+      redemptions: {
+        where: { status: "PENDING", expiresAt: { gt: now } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { code: true, rewardName: true },
+      },
     },
   });
   return customers.map((c) => ({
@@ -130,7 +136,59 @@ export async function guestMemberships(guestId: string) {
     visits: c.totalVisits,
     business: c.business,
     pendingCode: c.checkins[0] ? formatRewardCode(c.checkins[0].code) : null,
+    pendingReward: c.redemptions[0]?.code
+      ? {
+          code: formatRewardCode(c.redemptions[0].code),
+          rewardName: c.redemptions[0].rewardName,
+        }
+      : null,
   }));
+}
+
+/** For the venue page: the guest's balance here, the venue's active rewards,
+ *  and any live pending self-redeem code. Null when the guest isn't a member
+ *  yet (they must check in before they can redeem). */
+export async function guestRewardsContext(businessId: string, guestId: string) {
+  const now = new Date();
+  const customer = await db.customer.findFirst({
+    where: { businessId, guestId },
+    select: {
+      loyaltyPoints: true,
+      redemptions: {
+        where: { status: "PENDING", expiresAt: { gt: now } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          code: true,
+          rewardName: true,
+          pointsSpent: true,
+          expiresAt: true,
+        },
+      },
+    },
+  });
+  if (!customer) return null;
+
+  const rewards = await db.reward.findMany({
+    where: { businessId, active: true },
+    orderBy: { pointsCost: "asc" },
+    select: { id: true, name: true, description: true, pointsCost: true },
+  });
+
+  const pending = customer.redemptions[0] ?? null;
+  return {
+    points: customer.loyaltyPoints,
+    rewards,
+    pending:
+      pending?.code != null
+        ? {
+            code: formatRewardCode(pending.code),
+            rewardName: pending.rewardName,
+            pointsSpent: pending.pointsSpent,
+            expiresAt: pending.expiresAt,
+          }
+        : null,
+  };
 }
 
 /** For the venue page: whether this guest may review here (only after a

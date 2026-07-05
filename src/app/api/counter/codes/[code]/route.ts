@@ -3,9 +3,9 @@ import { json, notFound, requireApiSession } from "@/lib/http";
 import { formatRewardCode, normalizeRewardCode } from "@/lib/onetime";
 
 /**
- * Unified counter lookup: staff type/scan ANY guest code — welcome gift or
- * check-in — and see what it is before confirming. Business-scoped; a code
- * from another tenant is a 404.
+ * Unified counter lookup: staff type/scan ANY guest code — welcome gift,
+ * check-in, or a self-redeem reward code — and see what it is before
+ * confirming. Business-scoped; a code from another tenant is a 404.
  */
 export async function GET(
   _req: Request,
@@ -71,6 +71,37 @@ export async function GET(
       confirmedAt: checkin.confirmedAt,
       createdAt: checkin.createdAt,
       customer: checkin.customer,
+    });
+  }
+
+  // Guest self-redeem reward code: PENDING until staff confirm it here, which
+  // is when the points are actually spent.
+  const redemption = await db.redemption.findFirst({
+    where: { code: normalized, businessId },
+    select: {
+      code: true,
+      status: true,
+      rewardName: true,
+      pointsSpent: true,
+      expiresAt: true,
+      redeemedAt: true,
+      customer: { select: { id: true, firstName: true, lastName: true } },
+    },
+  });
+  if (redemption && redemption.code) {
+    const expired =
+      redemption.status === "PENDING" &&
+      redemption.expiresAt !== null &&
+      redemption.expiresAt < now;
+    return json({
+      kind: "REDEMPTION",
+      code: formatRewardCode(redemption.code),
+      status: expired ? "EXPIRED" : redemption.status,
+      rewardName: redemption.rewardName,
+      pointsSpent: redemption.pointsSpent,
+      expiresAt: redemption.expiresAt,
+      redeemedAt: redemption.redeemedAt,
+      customer: redemption.customer,
     });
   }
 

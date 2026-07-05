@@ -63,10 +63,19 @@ export default async function GuestWalletPage() {
                     {m.visits} visit{m.visits === 1 ? "" : "s"}
                   </p>
                 </div>
-                {m.pendingCode ? (
-                  <span className="shrink-0 rounded-lg border border-dashed border-ink/25 bg-paper px-2.5 py-1 font-mono text-xs font-bold text-ink">
-                    ⏳ {m.pendingCode}
-                  </span>
+                {m.pendingCode || m.pendingReward ? (
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {m.pendingCode ? (
+                      <span className="rounded-lg border border-dashed border-ink/25 bg-paper px-2.5 py-1 font-mono text-xs font-bold text-ink">
+                        ⏳ {m.pendingCode}
+                      </span>
+                    ) : null}
+                    {m.pendingReward ? (
+                      <span className="rounded-lg border border-dashed border-ink/25 bg-paper px-2.5 py-1 font-mono text-xs font-bold text-ink">
+                        💳 {m.pendingReward.code}
+                      </span>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </Link>
