@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { json, notFound, parseBody, requireApiSession, serverError } from "@/lib/http";
 import { visitCreateSchema } from "@/lib/validation";
 import { recordLedgerRow } from "@/lib/ledger";
+import { awardTierBonus, tierBonusSelect } from "@/lib/bonuses";
 import { actorFromSession, recordAudit } from "@/lib/audit";
 
 export async function POST(
@@ -33,10 +34,17 @@ export async function POST(
           silverThreshold: true,
           goldThreshold: true,
           vipThreshold: true,
+          ...tierBonusSelect,
         },
       }),
     ]);
     if (!customer || !loyalty) return notFound("Customer not found");
+    const tierBonus = {
+      tierBonusEnabled: loyalty.tierBonusEnabled,
+      tierBonusSilverPoints: loyalty.tierBonusSilverPoints,
+      tierBonusGoldPoints: loyalty.tierBonusGoldPoints,
+      tierBonusVipPoints: loyalty.tierBonusVipPoints,
+    };
 
     // Tier derives from the post-increment count returned by the update, so
     // concurrent visit logs can't leave tier inconsistent with totalVisits.
@@ -54,12 +62,20 @@ export async function POST(
       // live in-row count (a separate tier UPDATE from a JS-held count could
       // regress the tier under concurrent logs). RETURNING gives the exact
       // post-move balance for the ledger row.
+      // Lock the row and read the pre-update tier under the lock, so concurrent
+      // visit logs for the same customer can't both see the pre-promotion tier
+      // and double-award the tier bonus (they serialize on this lock).
+      const locked = await tx.$queryRaw<{ tier: string }[]>`
+        SELECT "tier" FROM "Customer" WHERE id = ${customer.id} FOR UPDATE`;
+      const oldTier = locked[0]?.tier ?? "BRONZE";
+
       const rows = await tx.$queryRaw<
         Array<{
           id: string;
           firstName: string;
           lastName: string | null;
           loyaltyPoints: number;
+          newTier: string;
         }>
       >`
         UPDATE "Customer" SET
@@ -75,7 +91,7 @@ export async function POST(
             ELSE 'BRONZE'
           END
         WHERE id = ${customer.id}
-        RETURNING "id", "firstName", "lastName", "loyaltyPoints"`;
+        RETURNING "id", "firstName", "lastName", "loyaltyPoints", "tier" AS "newTier"`;
       const row = rows[0];
 
       // Same earn, same ledger: a manual visit posts an EARN entry so the
@@ -91,6 +107,18 @@ export async function POST(
         createdByUserId: auth.session.userId,
         note: note ?? "Manual visit",
       });
+
+      // Tier-up bonus (once, on the promoting visit) — same transaction.
+      if (row) {
+        await awardTierBonus(tx, {
+          businessId,
+          customerId: customer.id,
+          oldTier,
+          newTier: row.newTier,
+          config: tierBonus,
+          sourceId: visit.id,
+        });
+      }
       return row;
     });
 

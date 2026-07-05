@@ -10,6 +10,7 @@ import {
 import { normalizeRewardCode } from "@/lib/onetime";
 import { creditVisit } from "@/lib/checkins";
 import { postLedgerEntry, recordLedgerRow } from "@/lib/ledger";
+import { tierBonusSelect } from "@/lib/bonuses";
 import { actorFromSession, recordAudit } from "@/lib/audit";
 
 /** Best-effort "First Last" for a customer, for the audit summary. */
@@ -57,9 +58,16 @@ export async function POST(
         silverThreshold: true,
         goldThreshold: true,
         vipThreshold: true,
+        ...tierBonusSelect,
       },
     });
     if (!loyalty) return notFound("Business not found");
+    const tierBonus = {
+      tierBonusEnabled: loyalty.tierBonusEnabled,
+      tierBonusSilverPoints: loyalty.tierBonusSilverPoints,
+      tierBonusGoldPoints: loyalty.tierBonusGoldPoints,
+      tierBonusVipPoints: loyalty.tierBonusVipPoints,
+    };
 
     const now = new Date();
 
@@ -134,6 +142,7 @@ export async function POST(
                 customerId: claim.customerId,
                 loyalty,
                 earnedByUserId: userId,
+                tierBonus,
               });
               visitCredited = true;
             }
@@ -270,6 +279,7 @@ export async function POST(
           customerId: checkin.customerId,
           loyalty,
           earnedByUserId: userId,
+          tierBonus,
         });
       },
       { maxWait: 10_000, timeout: 30_000 }

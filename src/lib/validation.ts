@@ -154,6 +154,14 @@ const businessUpdateFields = z.object({
   earnCooldownHours: z.number().int().min(0).max(72).optional(),
   maxEarnPerDay: z.number().int().min(1).max(10).optional(),
   askTableNumber: z.boolean().optional(),
+  // Automatic bonuses + points expiry (all posted to the ledger).
+  birthdayBonusEnabled: z.boolean().optional(),
+  birthdayBonusPoints: z.number().int().min(0).max(100_000).optional(),
+  tierBonusEnabled: z.boolean().optional(),
+  tierBonusSilverPoints: z.number().int().min(0).max(100_000).optional(),
+  tierBonusGoldPoints: z.number().int().min(0).max(100_000).optional(),
+  tierBonusVipPoints: z.number().int().min(0).max(100_000).optional(),
+  pointsExpiryMonths: z.number().int().min(0).max(120).optional(),
   // Guest-app discovery listing (opt-in). Photos are handled separately via
   // /api/business/media; these are the text fields shown on the venue page.
   listed: z.boolean().optional(),

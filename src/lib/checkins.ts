@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { generateRewardCode } from "@/lib/onetime";
 import { recordLedgerRow } from "@/lib/ledger";
+import { awardTierBonus, type TierBonusConfig } from "@/lib/bonuses";
 
 // ---------------------------------------------------------------------------
 // Staff-confirmed check-ins: the funnel mints a short-lived code; a human
@@ -52,6 +53,8 @@ export async function creditVisit(
     note?: string;
     /** Staff/owner who confirmed the code — recorded on the ledger row. */
     earnedByUserId?: string | null;
+    /** When set, award a tier-up bonus if this visit promotes the customer. */
+    tierBonus?: TierBonusConfig;
   }
 ): Promise<void> {
   const points = opts.loyalty.pointsPerVisit;
@@ -64,9 +67,19 @@ export async function creditVisit(
       note: opts.note ?? "QR check-in",
     },
   });
-  // One statement: bump visits/points/tier and RETURN the new balance so the
-  // ledger row's balanceAfter is exact (no extra round trip, no drift).
-  const rows = await tx.$queryRaw<{ loyaltyPoints: number }[]>`
+  // Lock the customer row and read the pre-update tier UNDER that lock. This
+  // serializes concurrent visits for the same customer, so a second visit can't
+  // also observe the pre-promotion tier and double-award the tier bonus (it
+  // waits, then sees the tier the first visit committed).
+  const locked = await tx.$queryRaw<{ tier: string }[]>`
+    SELECT "tier" FROM "Customer" WHERE id = ${opts.customerId} FOR UPDATE`;
+  const oldTier = locked[0]?.tier ?? "BRONZE";
+
+  // One statement: bump visits/points/tier and RETURN the new balance (for an
+  // exact ledger balanceAfter) plus the new tier (to detect a promotion).
+  const rows = await tx.$queryRaw<
+    { loyaltyPoints: number; newTier: string }[]
+  >`
     UPDATE "Customer" SET
       "totalVisits"  = "totalVisits" + 1,
       "loyaltyPoints" = "loyaltyPoints" + ${points},
@@ -79,8 +92,9 @@ export async function creditVisit(
         ELSE 'BRONZE'
       END
     WHERE id = ${opts.customerId}
-    RETURNING "loyaltyPoints"`;
+    RETURNING "loyaltyPoints", "tier" AS "newTier"`;
   const balanceAfter = rows[0]?.loyaltyPoints ?? points;
+  const newTier = rows[0]?.newTier ?? oldTier;
 
   await recordLedgerRow(tx, {
     businessId: opts.businessId,
@@ -93,6 +107,18 @@ export async function creditVisit(
     createdByUserId: opts.earnedByUserId ?? null,
     note: opts.note ?? "QR check-in",
   });
+
+  // Tier-up bonus (once, on the promoting visit) — same transaction as the earn.
+  if (opts.tierBonus && rows[0]) {
+    await awardTierBonus(tx, {
+      businessId: opts.businessId,
+      customerId: opts.customerId,
+      oldTier,
+      newTier,
+      config: opts.tierBonus,
+      sourceId: visit.id,
+    });
+  }
 }
 
 /**

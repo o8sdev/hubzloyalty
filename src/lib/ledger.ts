@@ -31,6 +31,7 @@ export const LEDGER_SOURCES = [
   "CHECKIN",
   "CAMPAIGN",
   "MANUAL",
+  "SYSTEM", // automatic bonuses (birthday/tier) + points expiry
 ] as const;
 export type LedgerSource = (typeof LEDGER_SOURCES)[number];
 

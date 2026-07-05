@@ -11,6 +11,7 @@ import {
 import { SettingsForm } from "./settings-form";
 import { LoyaltyForm } from "./loyalty-form";
 import { RewardsCatalog } from "./rewards-catalog";
+import { BonusesForm } from "./bonuses-form";
 import { NotificationsForm } from "./notifications-form";
 import { WelcomeRewardForm } from "./welcome-reward-form";
 import { VisitVerificationForm } from "./visit-verification-form";
@@ -157,6 +158,27 @@ export default async function SettingsPage() {
           />
           <CardBody>
             <RewardsCatalog canEdit={canEdit} initial={rewards} />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Automatic bonuses & expiry"
+            description="Reward guests on their birthday and when they climb a tier — credited automatically — and set how long unused points last."
+          />
+          <CardBody>
+            <BonusesForm
+              canEdit={canEdit}
+              initial={{
+                birthdayBonusEnabled: business.birthdayBonusEnabled,
+                birthdayBonusPoints: business.birthdayBonusPoints,
+                tierBonusEnabled: business.tierBonusEnabled,
+                tierBonusSilverPoints: business.tierBonusSilverPoints,
+                tierBonusGoldPoints: business.tierBonusGoldPoints,
+                tierBonusVipPoints: business.tierBonusVipPoints,
+                pointsExpiryMonths: business.pointsExpiryMonths,
+              }}
+            />
           </CardBody>
         </Card>
 

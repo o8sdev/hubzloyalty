@@ -29,10 +29,10 @@ invite-only onboarding, staff-confirmed check-ins, welcome rewards, an
 installable PWA, the guest app (G1–G4), and **Phase 3 — the points economy**:
 the accounting-grade ledger (step 1), the rewards catalog + staff redemption
 (step 2a), the owner loyalty report + ledger CSV export at `/loyalty` (step 3),
-and guest self-redeem — guests mint a reward code in the app, staff confirm it
-at the counter (step 2b). Next loyalty chunk is automatic bonuses (birthday/
-tier) + a points-expiry job. Only Phase 2 item left is the first Vercel deploy.
-Phases: `docs/04-roadmap.md`.
+guest self-redeem — guests mint a reward code in the app, staff confirm it at
+the counter (step 2b) — and **automatic bonuses (birthday + tier-up) plus a
+points-expiry job**. Phase 3 (the loyalty program) is now feature-complete. Only
+Phase 2 item left is the first Vercel deploy. Phases: `docs/04-roadmap.md`.
 
 **Onboarding is INVITE-ONLY** (as of Session 5): no self-registration.
 Prospects submit `/request-demo`; the platform admin works the inbox at
@@ -42,6 +42,44 @@ owners set their own password at first login.
 ---
 
 ## Session log (newest first)
+
+### 2026-07-05 — Session 21 (Windows): automatic bonuses + points expiry (Phase 3 complete)
+- **Three automatic loyalty mechanics, all posted to the ledger** (no drift):
+  - **Tier-up bonus** — event-driven. When a visit promotes a guest to a higher
+    tier, a `TIER_BONUS` row is posted in the SAME tx as the visit's EARN. Fires
+    once per tier (only on the actual promotion), so a bulk tier recompute
+    (`applyLoyaltyConfig`) never triggers it. Both organic tier-change sites do
+    it: `creditVisit` (`src/lib/checkins.ts`, counter confirm) and the manual
+    visit route — each now uses a Postgres CTE (`WITH prev AS (SELECT tier …)`)
+    to return old + new tier from the one UPDATE and calls `awardTierBonus`
+    (`src/lib/bonuses.ts`).
+  - **Birthday bonus** — daily cron. Guests whose birthday is today get points
+    once per calendar year (`NOT EXISTS` since Jan 1 + in-tx re-check).
+  - **Points expiry** — daily cron. Balances of guests inactive for
+    `pointsExpiryMonths` (COALESCE lastVisitAt→createdAt) are zeroed with a
+    compare-and-set + an `EXPIRE` row (delta = −balance). Idempotent (a zero
+    balance no longer matches). Finally populates the `/loyalty` "Points expired"
+    stat.
+  - Jobs live in `src/lib/loyalty-cron.ts`; endpoint `/api/cron/loyalty` (Bearer
+    `CRON_SECRET`, like the digest); `vercel.json` runs it daily 06:00 UTC. New
+    ledger source `SYSTEM`.
+- **Config** — new Business columns (`birthdayBonus*`, `tierBonus{Silver,Gold,Vip}Points`,
+  `tierBonusEnabled`, `pointsExpiryMonths`), validated in `validation.ts`, edited
+  in a new **Settings → "Automatic bonuses & expiry"** card (`bonuses-form.tsx`).
+  Migration `20260705010000_automatic_bonuses_expiry` applied live via MCP.
+- **Adversarial review caught 3 concurrency bugs — all fixed before commit:**
+  (1) tier-bonus double-award under concurrent same-customer visits (the CTE read
+  a stale pre-promotion tier from the statement snapshot) → now reads the old
+  tier under `SELECT … FOR UPDATE` so visits serialize; (2) birthday year-boundary
+  JS/SQL mismatch → the in-tx re-check now derives the year start from the DB
+  (`date_trunc('year', now())`), matching the SELECT; (3) points-expiry could
+  zero a guest who became active between the eligibility SELECT and the tx → now
+  locks the row and re-checks inactivity + reads the balance under `FOR UPDATE`.
+  Build passes after the fixes.
+- **NEXT:** the first Vercel deploy (last Phase 2 item; pin functions to the DB
+  region, set `CRON_SECRET`, and the two crons start firing). Then Phase 4
+  (campaigns). Still-flagged: two pre-existing funnel concurrency races
+  (`task_0cd2af74`).
 
 ### 2026-07-05 — Session 20 (Windows): guest SELF-redeem (Phase 3 step 2b)
 - **Guests can now spend points from the app.** A signed-in guest opens a venue,

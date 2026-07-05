@@ -57,6 +57,18 @@ model Business {
   maxEarnPerDay     Int     @default(2)
   askTableNumber    Boolean @default(false) // waiter venues: capture table #
 
+  // Automatic loyalty mechanics (no staff action; each posts to PointsLedger).
+  // Birthday bonus: awarded once per year on the guest's birthday (daily cron).
+  birthdayBonusEnabled Boolean @default(false)
+  birthdayBonusPoints  Int     @default(0)
+  // Tier-up bonus: awarded once when a visit promotes the guest to a new tier.
+  tierBonusEnabled      Boolean @default(false)
+  tierBonusSilverPoints Int     @default(0)
+  tierBonusGoldPoints   Int     @default(0)
+  tierBonusVipPoints    Int     @default(0)
+  // Points expire after this many months of inactivity (daily cron). 0 = never.
+  pointsExpiryMonths Int @default(0)
+
   // Max STAFF members (owner excluded) the owner can invite. Defaults to 1;
   // only a platform admin can raise it per business.
   staffLimit Int @default(1)

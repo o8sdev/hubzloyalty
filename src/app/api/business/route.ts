@@ -94,6 +94,8 @@ export async function PATCH(req: Request) {
       else if (/^welcomeReward/.test(k)) groups.add("welcome reward");
       else if (/^(earnCooldownHours|maxEarnPerDay|askTableNumber)$/.test(k))
         groups.add("check-in rules");
+      else if (/^(birthdayBonus|tierBonus|pointsExpiryMonths)/.test(k))
+        groups.add("automatic bonuses");
       else groups.add("business profile");
     }
     after(() =>
